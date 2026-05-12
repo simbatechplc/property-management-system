@@ -60,7 +60,7 @@ export default function HomePage() {
   }, [])
 
   const carouselImages = [
-    "https://watermark.lovepik.com/photo/20211123/large/lovepik-malaysia-luxury-resort-hotel-picture_500865089.jpg",
+    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1920&q=80",
     "https://w0.peakpx.com/wallpaper/720/875/HD-wallpaper-luxury-hotel-glamorous-hotel-five-star-hotel-hotel.jpg",
     "https://ansainteriors.com/wp-content/uploads/2020/06/1-2-copy.jpg",
   ]
