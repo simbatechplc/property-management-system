@@ -8,15 +8,38 @@ import { resetPasswordTemplate } from "../templates";
 const CLIENT_FRONTEND_URL = process.env.CLIENT_FRONTEND_URL;
 const ADMIN_FRONTEND_URL = process.env.ADMIN_FRONTEND_URL;
 
-// Allow all property-management-system Vercel deployments (including preview deployments)
+// Function to check if origin is trusted
+const isTrustedOrigin = (origin: string | undefined): boolean => {
+  if (!origin) return true;
+  
+  const staticOrigins = [
+    "http://localhost:4000",
+    "http://localhost:5173",
+    "https://solomongetnet.pro.et",
+    "https://www.solomongetnet.pro.et",
+    "myapp://",
+    ...(CLIENT_FRONTEND_URL ? [CLIENT_FRONTEND_URL] : []),
+    ...(ADMIN_FRONTEND_URL ? [ADMIN_FRONTEND_URL] : []),
+  ];
+  
+  if (staticOrigins.includes(origin)) return true;
+  
+  // Allow all Vercel deployments for property-management-system
+  const vercelPatterns = [
+    /^https:\/\/property-management-system[^.]*\.vercel\.app$/,
+    /^https:\/\/property-management-system[^.]*-[^.]*\.vercel\.app$/,
+    /^https:\/\/property-[^.]*\.vercel\.app$/,
+  ];
+  
+  return vercelPatterns.some(pattern => pattern.test(origin));
+};
+
+// Build trustedOrigins array for Better Auth (strings only)
 const trustedOrigins = [
   "http://localhost:4000",
   "http://localhost:5173",
   "https://solomongetnet.pro.et",
   "https://www.solomongetnet.pro.et",
-  /^https:\/\/property-management-system[^.]*\.vercel\.app$/,
-  /^https:\/\/property-management-system[^.]*-[^.]*\.vercel\.app$/,
-  /^https:\/\/property-[^.]*\.vercel\.app$/,
   "myapp://",
   ...(CLIENT_FRONTEND_URL ? [CLIENT_FRONTEND_URL] : []),
   ...(ADMIN_FRONTEND_URL ? [ADMIN_FRONTEND_URL] : []),
@@ -28,7 +51,13 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
-  trustedOrigins,
+  trustedOrigins: async (request) => {
+    const origin = request?.headers.get("origin") || "";
+    if (isTrustedOrigin(origin)) {
+      return [origin];
+    }
+    return [];
+  },
 
   baseURL: BASE_URL,
   databaseHooks: {
