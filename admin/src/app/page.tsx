@@ -150,7 +150,6 @@ export default function HomePage() {
                     src={image || "/placeholder.svg"}
                     alt={`Luxury hotel ${index + 1}`}
                     className="w-full h-full object-cover"
-                    crossOrigin="anonymous"
                     referrerPolicy="no-referrer"
                     onError={(e) => {
                       console.error(`Failed to load image ${index + 1}:`, image);
