@@ -60,7 +60,7 @@ export default function HomePage() {
   }, [])
 
   const carouselImages = [
-    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1920&q=80",
+    "https://watermark.lovepik.com/photo/20211123/large/lovepik-malaysia-luxury-resort-hotel-picture_500865089.jpg",
     "https://w0.peakpx.com/wallpaper/720/875/HD-wallpaper-luxury-hotel-glamorous-hotel-five-star-hotel-hotel.jpg",
     "https://ansainteriors.com/wp-content/uploads/2020/06/1-2-copy.jpg",
   ]
@@ -150,6 +150,10 @@ export default function HomePage() {
                     src={image || "/placeholder.svg"}
                     alt={`Luxury hotel ${index + 1}`}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error(`Failed to load image ${index + 1}:`, image);
+                      e.currentTarget.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1920&q=80";
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
 

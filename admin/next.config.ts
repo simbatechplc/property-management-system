@@ -11,6 +11,18 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "dynamic-media-cdn.tripadvisor.com",
       },
+      {
+        protocol: "https",
+        hostname: "watermark.lovepik.com",
+      },
+      {
+        protocol: "https",
+        hostname: "w0.peakpx.com",
+      },
+      {
+        protocol: "https",
+        hostname: "ansainteriors.com",
+      },
     ],
   },
 };
