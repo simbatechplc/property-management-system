@@ -8,24 +8,14 @@ import { resetPasswordTemplate } from "../templates";
 const CLIENT_FRONTEND_URL = process.env.CLIENT_FRONTEND_URL;
 const ADMIN_FRONTEND_URL = process.env.ADMIN_FRONTEND_URL;
 
+// Allow all property-management-system Vercel deployments
 const trustedOrigins = [
   "http://localhost:4000",
   "http://localhost:5173",
   "https://solomongetnet.pro.et",
   "https://www.solomongetnet.pro.et",
-  "https://property-admin-web.vercel.app",
-  "https://property-booking-project-ui9i.vercel.app",
-  "https://property-management-system-s61h-f20us0qvf.vercel.app",
-  "https://property-management-system-6wk84gdqk-mohammed-ahmedins-projects.vercel.app",
-  "https://property-management-system-ifoqipqs3-mohammed-ahmedins-projects.vercel.app",
-  "https://property-management-system-s61h-2wxy4q7rh.vercel.app",
-  "https://property-management-system-s61h-i1fy4jr1a.vercel.app",
-  "https://property-management-system-if6x3e54y-mohammed-ahmedins-projects.vercel.app",
-  "https://property-management-system-ifoqipqs3-mohammed-ahmedins-projects.vercel.app",
-  "https://property-management-system-s61h.vercel.app",
-  "https://property-management-system-cyan.vercel.app",
-  "https://property-management-system-admin.vercel.app",
-  "https://property-management-system-gules.vercel.app",
+  /^https:\/\/property-management-system.*\.vercel\.app$/,
+  /^https:\/\/property-.*\.vercel\.app$/,
   "myapp://",
   ...(CLIENT_FRONTEND_URL ? [CLIENT_FRONTEND_URL] : []),
   ...(ADMIN_FRONTEND_URL ? [ADMIN_FRONTEND_URL] : []),
