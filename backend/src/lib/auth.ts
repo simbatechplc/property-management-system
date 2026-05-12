@@ -8,14 +8,15 @@ import { resetPasswordTemplate } from "../templates";
 const CLIENT_FRONTEND_URL = process.env.CLIENT_FRONTEND_URL;
 const ADMIN_FRONTEND_URL = process.env.ADMIN_FRONTEND_URL;
 
-// Allow all property-management-system Vercel deployments
+// Allow all property-management-system Vercel deployments (including preview deployments)
 const trustedOrigins = [
   "http://localhost:4000",
   "http://localhost:5173",
   "https://solomongetnet.pro.et",
   "https://www.solomongetnet.pro.et",
-  /^https:\/\/property-management-system.*\.vercel\.app$/,
-  /^https:\/\/property-.*\.vercel\.app$/,
+  /^https:\/\/property-management-system[^.]*\.vercel\.app$/,
+  /^https:\/\/property-management-system[^.]*-[^.]*\.vercel\.app$/,
+  /^https:\/\/property-[^.]*\.vercel\.app$/,
   "myapp://",
   ...(CLIENT_FRONTEND_URL ? [CLIENT_FRONTEND_URL] : []),
   ...(ADMIN_FRONTEND_URL ? [ADMIN_FRONTEND_URL] : []),
