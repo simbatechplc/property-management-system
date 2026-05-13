@@ -18,7 +18,7 @@ const validationSchema = yup.object({
 
 type FormType = yup.InferType<typeof validationSchema>;
 
-const ADMIN_AUTH_URL = "https://property-management-system-s61h.vercel.app/auth";
+const ADMIN_AUTH_URL = "https://property-management-system-admin.vercel.app/auth";
 
 const LoginView = () => {
   const navigate = useNavigate();
