@@ -406,7 +406,6 @@ export default function BookingDialog({
   const receiptContent = (
     <div className="space-y-4">
       {manualPaymentStep ? (
-        // Manual bank transfer step
         paymentSuccess ? (
           <div className="text-center py-8 space-y-3">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
@@ -461,149 +460,104 @@ export default function BookingDialog({
         )
       ) : (
         <div className="space-y-4">
-        <div className="flex items-center gap-2 pb-2 border-b border-border">
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-          2
-        </div>
-        <span className="text-sm font-medium text-foreground">
-          Review & Confirm
-        </span>
-      </div>
+          <div className="flex items-center gap-2 pb-2 border-b border-border">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">2</div>
+            <span className="text-sm font-medium text-foreground">Review &amp; Confirm</span>
+          </div>
 
-      <div className="space-y-4">
-        {/* Booking Details Summary */}
-        <div className="rounded-lg bg-muted p-4 space-y-3">
-          <h3 className="font-semibold text-foreground">Booking Details</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Check-in:</span>
-              <span className="font-medium">
-                {new Date(checkIn).toLocaleDateString()}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Check-out:</span>
-              <span className="font-medium">
-                {new Date(checkOut).toLocaleDateString()}
-              </span>
-            </div>
-            {!propertyId && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Guests:</span>
-              <span className="font-medium">{guests}</span>
-            </div>
-            )}
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Nights:</span>
-              <span className="font-medium">{nights}</span>
+          {/* Booking Details Summary */}
+          <div className="rounded-lg bg-muted p-4 space-y-3">
+            <h3 className="font-semibold text-foreground">Booking Details</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Check-in:</span>
+                <span className="font-medium">{new Date(checkIn).toLocaleDateString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Check-out:</span>
+                <span className="font-medium">{new Date(checkOut).toLocaleDateString()}</span>
+              </div>
+              {!propertyId && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Guests:</span>
+                  <span className="font-medium">{guests}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Nights:</span>
+                <span className="font-medium">{nights}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Price Breakdown */}
-        <div className="rounded-lg border border-border p-4 space-y-3">
-          <h3 className="font-semibold text-foreground">Price Breakdown</h3>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">
-                {room.name} × {nights} {nights === 1 ? "night" : "nights"}
-              </span>
-              <div className="text-right">
-                {hasDiscount && (
-                  <p className="text-xs line-through text-muted-foreground">ETB {(room.price * nights).toLocaleString()}</p>
-                )}
-                <FormatedAmount amount={roomSubtotal} className="font-medium text-sm" />
-              </div>
-            </div>
-            {hasDiscount && (
-              <div className="flex justify-between text-sm text-emerald-600 dark:text-emerald-400">
-                <span className="flex items-center gap-1">
-                  🏷️ Discount ({Math.round(totalDiscountPct)}% off)
-                </span>
-                <span className="font-medium">-ETB {((room.price - effectivePriceRounded) * nights).toLocaleString()}</span>
-              </div>
-            )}
-
-            {/* Selected Services with night multiplier */}
-            {selectedServices.length > 0 && (
-              <div className="border-t border-border pt-2 space-y-2">
-                {selectedServices.map((serviceId) => {
-                  const service = services.find((s) => s.id === serviceId);
-                  if (!service) return null;
-                  const serviceTotal = (service.price || 0) * nights;
-                  return (
-                    <div
-                      key={serviceId}
-                      className="flex justify-between text-sm"
-                    >
-                      <span className="text-muted-foreground flex items-center gap-2">
-                        <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
-                        {service.name} × {nights}
-                      </span>
-
-                      <FormatedAmount
-                        amount={serviceTotal}
-                        className="font-medium text-lg "
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Subtotal and Total */}
-            <div className="border-t border-border pt-3 space-y-2">
+          {/* Price Breakdown */}
+          <div className="rounded-lg border border-border p-4 space-y-3">
+            <h3 className="font-semibold text-foreground">Price Breakdown</h3>
+            <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Subtotal</span>
-
-                <FormatedAmount
-                  amount={roomSubtotal + servicesTotal}
-                  className="font-medium text-lg "
-                />
+                <span className="text-muted-foreground">{room.name} × {nights} {nights === 1 ? "night" : "nights"}</span>
+                <div className="text-right">
+                  {hasDiscount && <p className="text-xs line-through text-muted-foreground">ETB {(room.price * nights).toLocaleString()}</p>}
+                  <FormatedAmount amount={roomSubtotal} className="font-medium text-sm" />
+                </div>
               </div>
-              <div className="flex justify-between text-base font-bold pt-2 border-t border-border">
-                <span>Total</span>
-                <FormatedAmount amount={total} className="font-bold text-lg" />
+              {hasDiscount && (
+                <div className="flex justify-between text-sm text-emerald-600 dark:text-emerald-400">
+                  <span>🏷️ Discount ({Math.round(totalDiscountPct)}% off)</span>
+                  <span className="font-medium">-ETB {((room.price - effectivePriceRounded) * nights).toLocaleString()}</span>
+                </div>
+              )}
+              {selectedServices.length > 0 && (
+                <div className="border-t border-border pt-2 space-y-2">
+                  {selectedServices.map((serviceId) => {
+                    const service = services.find((s) => s.id === serviceId);
+                    if (!service) return null;
+                    return (
+                      <div key={serviceId} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground flex items-center gap-2">
+                          <Check className="h-3 w-3 text-green-600 dark:text-green-400" />
+                          {service.name} × {nights}
+                        </span>
+                        <FormatedAmount amount={(service.price || 0) * nights} className="font-medium text-lg" />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="border-t border-border pt-3 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <FormatedAmount amount={roomSubtotal + servicesTotal} className="font-medium text-lg" />
+                </div>
+                <div className="flex justify-between text-base font-bold pt-2 border-t border-border">
+                  <span>Total</span>
+                  <FormatedAmount amount={total} className="font-bold text-lg" />
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Bank transfer info shown before Book Now */}
-      {siteConfig?.bankName && (
-        <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 space-y-1.5">
-          <p className="font-semibold text-xs text-blue-800 dark:text-blue-200">📋 After clicking Book Now, transfer to:</p>
-          <div className="space-y-1 text-xs">
-            <div className="flex justify-between"><span className="text-muted-foreground">Bank:</span><span className="font-medium">{siteConfig.bankName}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Account Name:</span><span className="font-medium">{siteConfig.bankAccountHolder}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Account No:</span><span className="font-bold text-primary">{siteConfig.bankAccountNumber}</span></div>
+          {/* Bank transfer info shown before Book Now */}
+          {siteConfig?.bankName && (
+            <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 space-y-1.5">
+              <p className="font-semibold text-xs text-blue-800 dark:text-blue-200">📋 After clicking Book Now, transfer to:</p>
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between"><span className="text-muted-foreground">Bank:</span><span className="font-medium">{siteConfig.bankName}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Account Name:</span><span className="font-medium">{siteConfig.bankAccountHolder}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Account No:</span><span className="font-bold text-primary">{siteConfig.bankAccountNumber}</span></div>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1 bg-transparent" onClick={handleBack}>Back</Button>
+            <Button size="lg" className="flex-1" onClick={handleBookNow} disabled={bookNowMutation.isPending}>
+              {bookNowMutation.isPending ? <Spinner scale={1} /> : "Book Now"}
+            </Button>
           </div>
+          <p className="text-center text-xs text-muted-foreground">Click Book Now, then submit your transfer proof</p>
         </div>
-      )}
-
-      {/* Action Buttons - always visible */}
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          className="flex-1 bg-transparent"
-          onClick={handleBack}
-        >
-          Back
-        </Button>
-        <Button
-          size="lg"
-          className="flex-1"
-          onClick={handleBookNow}
-          disabled={bookNowMutation.isPending}
-        >
-          {bookNowMutation.isPending ? <Spinner scale={1} /> : "Book Now"}
-        </Button>
-      </div>
-
-      <p className="text-center text-xs text-muted-foreground">
-        Click Book Now, then submit your transfer proof
-      </p>
       )}
     </div>
   );
