@@ -8,6 +8,7 @@ import { FaStar } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 
 const ITEMS_PER_PAGE = 8;
+const MOBILE_ITEMS_PER_PAGE = 4; // 2×2 on mobile
 
 const TrendingCard = ({ data }: { data: any }) => {
   const navigate = useNavigate();
@@ -67,9 +68,12 @@ const PropertiesSection = () => {
   const dataQuery = useGetTrendingProperties();
   const properties: any[] = dataQuery.data?.data || [];
   const [page, setPage] = useState(0);
+  const [mobilePage, setMobilePage] = useState(0);
 
   const totalPages = Math.ceil(properties.length / ITEMS_PER_PAGE);
+  const mobileTotalPages = Math.ceil(properties.length / MOBILE_ITEMS_PER_PAGE);
   const pageItems = properties.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE);
+  const mobilePageItems = properties.slice(mobilePage * MOBILE_ITEMS_PER_PAGE, (mobilePage + 1) * MOBILE_ITEMS_PER_PAGE);
 
   return (
     <section className="c-px pb-10">
@@ -82,36 +86,71 @@ const PropertiesSection = () => {
       ) : dataQuery.isError || properties.length === 0 ? (
         <p className="text-muted-foreground text-sm">No trending properties yet.</p>
       ) : (
-        <div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {pageItems.map((d: any) => (
-              <TrendingCard key={d.id} data={d} />
-            ))}
-          </div>
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-3 mt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-full"
-                disabled={page === 0}
-                onClick={() => setPage(p => Math.max(0, p - 1))}
-              >
-                <ChevronLeft className="w-4 h-4" /> Previous
-              </Button>
-              <span className="text-sm text-muted-foreground">{page + 1} / {totalPages}</span>
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-full"
-                disabled={page >= totalPages - 1}
-                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-              >
-                Next <ChevronRight className="w-4 h-4" />
-              </Button>
+        <>
+          {/* Mobile: 2×2 grid (4 items per page) */}
+          <div className="md:hidden">
+            <div className="grid grid-cols-2 gap-3">
+              {mobilePageItems.map((d: any) => (
+                <TrendingCard key={d.id} data={d} />
+              ))}
             </div>
-          )}
-        </div>
+            {mobileTotalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full"
+                  disabled={mobilePage === 0}
+                  onClick={() => setMobilePage(p => Math.max(0, p - 1))}
+                >
+                  <ChevronLeft className="w-4 h-4" /> Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">{mobilePage + 1} / {mobileTotalPages}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full"
+                  disabled={mobilePage >= mobileTotalPages - 1}
+                  onClick={() => setMobilePage(p => Math.min(mobileTotalPages - 1, p + 1))}
+                >
+                  Next <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: 4-column grid (8 items per page) — unchanged */}
+          <div className="hidden md:block">
+            <div className="grid grid-cols-4 gap-4">
+              {pageItems.map((d: any) => (
+                <TrendingCard key={d.id} data={d} />
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 mt-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full"
+                  disabled={page === 0}
+                  onClick={() => setPage(p => Math.max(0, p - 1))}
+                >
+                  <ChevronLeft className="w-4 h-4" /> Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">{page + 1} / {totalPages}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                >
+                  Next <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </>
       )}
     </section>
   );

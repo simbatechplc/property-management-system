@@ -632,9 +632,9 @@ export default function BookingDialog({
 
   // Mobile: Drawer with scrollable content and sticky buttons
   return (
-    <Drawer open={isOpen} onOpenChange={handleOnOpenChange}>
-      <DrawerContent className="max-h-[90vh] flex flex-col">
-        <div className="sticky top-0 bg-background z-10 border-b border-border px-4 pt-4 pb-4">
+    <Drawer open={isOpen} onOpenChange={handleOnOpenChange} dismissible={false}>
+      <DrawerContent className="max-h-[95vh] flex flex-col" onPointerDownOutside={(e) => e.preventDefault()}>
+        <div className="sticky top-0 bg-background z-10 border-b border-border px-4 pt-4 pb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {step === "receipt" && (
               <button
@@ -649,6 +649,9 @@ export default function BookingDialog({
               {step === "booking" ? `Book ${room.name}` : "Review Your Booking"}
             </h2>
           </div>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onClose()}>
+            <X className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* Scrollable content area */}

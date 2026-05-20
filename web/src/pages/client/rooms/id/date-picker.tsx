@@ -30,6 +30,8 @@ export default function DateRangePicker({
   const [activeField, setActiveField] = useState<"checkIn" | "checkOut" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
+  // Pending date — holds the selected date until "Done" is pressed on mobile
+  const [pendingDate, setPendingDate] = useState<Date | null>(null);
 
   const bookedDates = React.useMemo(() => {
     const set = new Set<string>();
@@ -64,10 +66,34 @@ export default function DateRangePicker({
     onChange?.(checkIn, checkOut);
   }, [checkIn, checkOut, onChange]);
 
+  // When activeField changes, pre-populate pendingDate with current value
+  useEffect(() => {
+    if (activeField === "checkIn") setPendingDate(checkIn || null);
+    else if (activeField === "checkOut") setPendingDate(checkOut || null);
+    else setPendingDate(null);
+  }, [activeField]);
+
   function clearDates() {
     setCheckIn(null);
     setCheckOut(null);
     setActiveField(null);
+    setPendingDate(null);
+  }
+
+  function handleDone() {
+    if (!pendingDate) {
+      setActiveField(null);
+      return;
+    }
+    if (activeField === "checkIn") {
+      setCheckIn(pendingDate);
+      if (checkOut && pendingDate && checkOut < pendingDate) setCheckOut(null);
+      setActiveField("checkOut");
+    } else if (activeField === "checkOut") {
+      setCheckOut(pendingDate);
+      setActiveField(null);
+    }
+    setPendingDate(null);
   }
 
   const disabledCheckIn = (date: Date) => isPast(date) || isBooked(date);
@@ -76,6 +102,10 @@ export default function DateRangePicker({
 
   const modifiers = { booked: (date: Date) => isBooked(date) };
   const modifiersClassNames = { booked: "line-through text-red-400 opacity-60 cursor-not-allowed" };
+
+  // Display value: show pending date while calendar is open, otherwise show confirmed date
+  const checkInDisplay = activeField === "checkIn" && pendingDate ? pendingDate : checkIn;
+  const checkOutDisplay = activeField === "checkOut" && pendingDate ? pendingDate : checkOut;
 
   return (
     <div className="space-y-3">
@@ -91,8 +121,8 @@ export default function DateRangePicker({
             }`}
           >
             <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className={checkIn ? "text-foreground" : "text-muted-foreground"}>
-              {checkIn ? format(checkIn, "MMM d, yyyy") : "Select date"}
+            <span className={checkInDisplay ? "text-foreground" : "text-muted-foreground"}>
+              {checkInDisplay ? format(checkInDisplay, "MMM d, yyyy") : "Select date"}
             </span>
             <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto" />
           </button>
@@ -107,35 +137,35 @@ export default function DateRangePicker({
             }`}
           >
             <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className={checkOut ? "text-foreground" : "text-muted-foreground"}>
-              {checkOut ? format(checkOut, "MMM d, yyyy") : "Select date"}
+            <span className={checkOutDisplay ? "text-foreground" : "text-muted-foreground"}>
+              {checkOutDisplay ? format(checkOutDisplay, "MMM d, yyyy") : "Select date"}
             </span>
             <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto" />
           </button>
         </div>
       </div>
 
-      {/* Inline calendar — renders below the buttons, inside the scrollable dialog */}
+      {/* Inline calendar */}
       {activeField && (
         <div className="rounded-xl border border-border bg-background shadow-sm p-2">
           <div className="flex items-center justify-between mb-2 px-1">
             <span className="text-xs font-medium text-muted-foreground">
               {activeField === "checkIn" ? "Select check-in date" : "Select check-out date"}
+              {pendingDate && <span className="ml-2 text-primary font-semibold">{format(pendingDate, "MMM d, yyyy")}</span>}
             </span>
             <div className="flex gap-1">
               <Button
                 size="sm"
-                variant="ghost"
-                className="h-6 text-xs px-2"
-                onPointerDown={(e) => { e.preventDefault(); setActiveField(null); }}
+                className="h-7 text-xs px-3"
+                onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); handleDone(); }}
               >
                 Done
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-6 text-xs px-2 text-destructive"
-                onPointerDown={(e) => { e.preventDefault(); clearDates(); }}
+                className="h-7 text-xs px-2 text-destructive"
+                onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); clearDates(); }}
               >
                 <Trash className="h-3 w-3" />
               </Button>
@@ -143,7 +173,7 @@ export default function DateRangePicker({
           </div>
           <Calendar
             mode="single"
-            selected={activeField === "checkIn" ? checkIn : checkOut}
+            selected={pendingDate || undefined}
             disabled={activeField === "checkIn" ? disabledCheckIn : disabledCheckOut}
             modifiers={modifiers}
             modifiersClassNames={modifiersClassNames}
@@ -155,14 +185,8 @@ export default function DateRangePicker({
               ) : null
             }
             onSelect={(date) => {
-              if (activeField === "checkIn") {
-                setCheckIn(date as Date);
-                if (checkOut && date && checkOut < (date as Date)) setCheckOut(null);
-                setActiveField("checkOut"); // auto-advance to checkout
-              } else {
-                setCheckOut(date as Date);
-                setActiveField(null); // close after checkout selected
-              }
+              // Just update pending — don't close yet. User must press Done.
+              setPendingDate(date as Date || null);
             }}
             className="mx-auto"
           />
