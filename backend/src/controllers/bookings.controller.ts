@@ -140,6 +140,59 @@ export default {
     });
     const brokerId = brokerRecord?.userId || "";
 
+    // 🏦 CHAPA_ENABLED flag — when false, use manual bank transfer
+    const CHAPA_ENABLED = process.env.CHAPA_ENABLED === "true";
+
+    if (!CHAPA_ENABLED) {
+      // Create booking without Chapa payment
+      const newBooking = await prisma.booking.create({
+        data: {
+          checkIn: checkInDate,
+          checkOut: checkOutDate,
+          guests: validated.guests,
+          manualBooked: false,
+          totalAmount,
+          subTotal: effectivePriceRounded * totalNights,
+          basePrice: roomDoc.price,
+          taxAmount: 0,
+          discount: totalDiscountAmount,
+          currency: "ETB",
+          user: { connect: { id: validated.userId } },
+          room: { connect: { id: validated.roomId } },
+          property: { connect: { id: roomDoc.propertyId } },
+          additionalServices: {
+            connect: validated.additionalServices.map((s) => ({ id: s.id })),
+          },
+          payment: {
+            create: {
+              status: "PENDING",
+              method: "CASH",
+              pendingAmount: totalAmount,
+            },
+          },
+        },
+      });
+
+      await prisma.activity.create({
+        data: {
+          action: "BOOKED",
+          description: `New booking by user ${userDoc.name} (${userDoc.email}) for room "${roomDoc.name}". Check-in: ${checkInDate.toLocaleDateString()}, Check-out: ${checkOutDate.toLocaleDateString()}. Total: ETB ${totalAmount}. Awaiting manual bank transfer.`,
+          userId: validated.userId,
+          bookingId: newBooking.id,
+          roomId: validated.roomId,
+          propertyId: roomDoc.propertyId,
+          status: "INFO",
+        },
+      }).catch(() => {});
+
+      return res.status(201).json({
+        success: true,
+        paymentMethod: "MANUAL_BANK_TRANSFER",
+        bookingId: newBooking.id,
+        totalAmount,
+      });
+    }
+
     const { chapaResponse, commission, subaccounts } =
       await initializeChapaPayment({
         data: {

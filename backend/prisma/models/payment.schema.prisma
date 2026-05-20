@@ -37,3 +37,24 @@ enum SubAccountType {
     OWNER
     PLATFORM
 }
+
+model PaymentSubmission {
+  id              String                  @id @default(uuid())
+  booking         Booking                 @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId       String                  @unique
+  referenceNumber String
+  amountPaid      Float
+  fullName        String
+  screenshotUrl   String
+  status          PaymentSubmissionStatus @default(PENDING)
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+}
+
+enum PaymentSubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}

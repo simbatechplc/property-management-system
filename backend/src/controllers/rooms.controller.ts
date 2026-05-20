@@ -218,6 +218,13 @@ export default {
       return res.status(404).json({ message: "Property not found" });
     }
 
+    // 🏠 Villa guard: rooms cannot be added to Villa properties
+    if (property.type === "VILLA") {
+      return res.status(400).json({
+        message: "Rooms cannot be added to Villa properties. Villas are booked as whole units.",
+      });
+    }
+
     if (roomByRoomId) {
       return res.status(409).json({
         message: "This room ID is already used in this property. Please use a different room ID.",

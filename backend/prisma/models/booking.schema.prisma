@@ -50,6 +50,8 @@ model Booking {
 
   payment Payment?
 
+  paymentSubmission PaymentSubmission?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

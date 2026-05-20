@@ -18,6 +18,40 @@ import { FaStar } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 import { useFavorites } from "@/hooks/use-favorites";
 
+// Admin contact section — shows SiteConfig contact, not owner contact
+const AdminContactSection = () => {
+  const [config, setConfig] = useState<any>(null);
+  useEffect(() => {
+    import("@/hooks/api").then(({ api }) => {
+      api.get("/site-config").then(res => setConfig(res.data)).catch(() => {});
+    });
+  }, []);
+  return (
+    <div className="space-y-2.5 pt-4 border-t border-border">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Contact</p>
+      {config?.contactPhone ? (
+        <a href={`tel:${config.contactPhone}`} className="flex items-center gap-2.5 text-sm hover:text-primary transition-colors group">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+            <Phone className="w-3.5 h-3.5 text-primary" />
+          </div>
+          <span>{config.contactPhone}</span>
+        </a>
+      ) : null}
+      {config?.contactEmail ? (
+        <a href={`mailto:${config.contactEmail}`} className="flex items-center gap-2.5 text-sm hover:text-primary transition-colors group">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+            <Mail className="w-3.5 h-3.5 text-primary" />
+          </div>
+          <span className="truncate">{config.contactEmail}</span>
+        </a>
+      ) : null}
+      {!config?.contactPhone && !config?.contactEmail && (
+        <p className="text-sm text-muted-foreground">Contact us for more information</p>
+      )}
+    </div>
+  );
+};
+
 interface Props { data: GuestDetailHouseResponse; }
 
 const NAV_TABS = ["Overview", "Rooms", "Trip recommendations", "Facilities", "Reviews", "Location", "Policies"];
@@ -447,6 +481,12 @@ const DataContainer = ({ data }: Props) => {
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <Badge variant="secondary" className="text-xs uppercase tracking-wide">{property.type || "Hotel"}</Badge>
+                  {/* Furnishing status badge for APARTMENT and VILLA */}
+                  {(property.type === "APARTMENT" || property.type === "VILLA") && (property as any).furnishingStatus && (
+                    <Badge variant="outline" className="text-xs capitalize">
+                      {((property as any).furnishingStatus as string).replace(/_/g, " ").toLowerCase()}
+                    </Badge>
+                  )}
                   {property.location?.city && (
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <MapPin className="w-3 h-3" />{property.location.city}
@@ -779,28 +819,8 @@ const DataContainer = ({ data }: Props) => {
                 </Button>
               )}
 
-              {/* Contact */}
-              {(property.contact?.phone || property.contact?.email) && (
-                <div className="space-y-2.5 pt-4 border-t border-border">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Contact</p>
-                  {property.contact?.phone && (
-                    <a href={`tel:${property.contact.phone}`} className="flex items-center gap-2.5 text-sm hover:text-primary transition-colors group">
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                        <Phone className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <span>{property.contact.phone}</span>
-                    </a>
-                  )}
-                  {property.contact?.email && (
-                    <a href={`mailto:${property.contact.email}`} className="flex items-center gap-2.5 text-sm hover:text-primary transition-colors group">
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                        <Mail className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                      <span className="truncate">{property.contact.email}</span>
-                    </a>
-                  )}
-                </div>
-              )}
+              {/* Contact — show Admin contact from SiteConfig, not owner contact */}
+              <AdminContactSection />
 
               {/* Quick facts */}
               <div className="mt-4 pt-4 border-t border-border space-y-2">

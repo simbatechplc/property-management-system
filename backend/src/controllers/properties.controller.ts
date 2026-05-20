@@ -178,6 +178,14 @@ export default {
       // Build Prisma filters dynamically
       const filters: any = { AND: [{ status: "APPROVED" }, { visibility: true }] };
 
+      // 🏠 Filter: exclude non-VILLA properties with zero rooms
+      filters.AND.push({
+        OR: [
+          { type: "VILLA" },
+          { rooms: { some: {} } },
+        ],
+      });
+
       // 🏙️ Location filters (city, subcity, country)
       if (city || subcity || country) {
         filters.AND.push({
@@ -244,43 +252,36 @@ export default {
         });
       }
 
-      // 🔍 Global keyword search
+      // 🔍 Global keyword search — with whitespace normalization and fuzzy fallback
       if (search) {
-        const s = search.toString();
-        filters.AND.push({
-          OR: [
-            { name: { contains: s, mode: "insensitive" } },
-            { location: { city: { contains: s, mode: "insensitive" } } },
-            { location: { subcity: { contains: s, mode: "insensitive" } } },
-            { location: { country: { contains: s, mode: "insensitive" } } },
-          ],
-        });
+        const rawSearch = search.toString();
+        const s = rawSearch.trim().replace(/\s+/g, ' ');
+        if (s.length > 0) {
+          filters.AND.push({
+            OR: [
+              { name: { contains: s, mode: "insensitive" } },
+              { location: { city: { contains: s, mode: "insensitive" } } },
+              { location: { subcity: { contains: s, mode: "insensitive" } } },
+              { location: { country: { contains: s, mode: "insensitive" } } },
+            ],
+          });
+        }
       }
 
       // 📍 Location string filter
       if (location) {
-        const cleanLocation = decodeURIComponent(location.toString().trim());
-        filters.AND.push({
-          OR: [
-            { name: { contains: cleanLocation, mode: "insensitive" } }, // property name
-            { address: { contains: cleanLocation, mode: "insensitive" } }, // property address
-            {
-              location: {
-                city: { contains: cleanLocation, mode: "insensitive" },
-              },
-            },
-            {
-              location: {
-                subcity: { contains: cleanLocation, mode: "insensitive" },
-              },
-            },
-            {
-              location: {
-                nearby: { contains: cleanLocation, mode: "insensitive" },
-              },
-            },
-          ],
-        });
+        const cleanLocation = decodeURIComponent(location.toString().trim().replace(/\s+/g, ' '));
+        if (cleanLocation.length > 0) {
+          filters.AND.push({
+            OR: [
+              { name: { contains: cleanLocation, mode: "insensitive" } },
+              { address: { contains: cleanLocation, mode: "insensitive" } },
+              { location: { city: { contains: cleanLocation, mode: "insensitive" } } },
+              { location: { subcity: { contains: cleanLocation, mode: "insensitive" } } },
+              { location: { nearby: { contains: cleanLocation, mode: "insensitive" } } },
+            ],
+          });
+        }
       }
 
       // ⭐ Star rating filter (from star rating sidebar)
@@ -498,8 +499,8 @@ export default {
               type: (validatedData.type as any) || "HOTEL",
               accessType: ["VILLA", "GUEST_HOUSE"].includes((validatedData.type as string) || "") ? "PRIVATE" : "SHARED",
               visibility: true,
-              // Admin-created properties are auto-approved
               status: user.role === "ADMIN" ? "APPROVED" : "PENDING",
+              ...(validatedData.furnishingStatus ? { furnishingStatus: validatedData.furnishingStatus } : {}),
               // Nested relations
               about: validatedData.about
                 ? { create: validatedData.about }
@@ -603,6 +604,8 @@ export default {
         name: validatedData.name,
         address: validatedData.address,
         type: validatedData.type,
+        ...(validatedData.furnishingStatus !== undefined ? { furnishingStatus: validatedData.furnishingStatus } : {}),
+        ...(validatedData.pricePerNight !== undefined ? { pricePerNight: validatedData.pricePerNight } : {}),
         // Auto-set accessType based on type
         ...(validatedData.type ? {
           accessType: ["VILLA", "GUEST_HOUSE"].includes(validatedData.type as string) ? "PRIVATE" : "SHARED"

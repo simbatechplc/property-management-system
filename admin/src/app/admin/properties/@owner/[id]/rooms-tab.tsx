@@ -21,6 +21,7 @@ const RoomsTab = ({ propertyId, propertyType }: { propertyId: string; propertyTy
   const deleteMutation = useDeleteRoomMutation();
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const showPerNight = ["HOTEL", "APARTMENT"].includes(propertyType || "");
+  const isVilla = propertyType === "VILLA";
 
   return (
     <TabsContent value="rooms">
@@ -31,9 +32,17 @@ const RoomsTab = ({ propertyId, propertyType }: { propertyId: string; propertyTy
               <CardTitle>Rooms</CardTitle>
               <CardDescription>Manage your property rooms</CardDescription>
             </div>
-            <Button size="sm" onClick={() => router.push("/admin/rooms/create")}>
-              <Bed className="h-4 w-4 mr-2" /> Add Room
-            </Button>
+            {isVilla ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground bg-muted px-3 py-1.5 rounded-lg">
+                  🏡 Villas are booked as whole units — rooms cannot be added
+                </span>
+              </div>
+            ) : (
+              <Button size="sm" onClick={() => router.push("/admin/rooms/create")}>
+                <Bed className="h-4 w-4 mr-2" /> Add Room
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>

@@ -134,8 +134,8 @@ export default function DateRangePicker({
                 }}
               />
               <div className="mt-2 flex items-center justify-between gap-2">
-                <Button size="sm" onClick={() => setOpen(false)}>Done</Button>
-                <Button size="sm" variant="secondary" onClick={clearDates} title="Clear dates">
+                <Button size="sm" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); }}>Done</Button>
+                <Button size="sm" variant="secondary" onPointerDown={(e) => { e.preventDefault(); clearDates(); }} title="Clear dates">
                   <Trash className="h-4 w-4" />
                 </Button>
               </div>
@@ -182,8 +182,8 @@ export default function DateRangePicker({
                 }}
               />
               <div className="mt-2 flex items-center justify-between gap-2">
-                <Button size="sm" onClick={() => setCheckoutOpen(false)}>Done</Button>
-                <Button size="sm" variant="secondary" onClick={clearDates} title="Clear dates">
+                <Button size="sm" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setCheckoutOpen(false); }}>Done</Button>
+                <Button size="sm" variant="secondary" onPointerDown={(e) => { e.preventDefault(); clearDates(); }} title="Clear dates">
                   <Trash className="h-4 w-4" />
                 </Button>
               </div>

@@ -160,6 +160,38 @@ export function CreatePropertyForm() {
                 </p>
               )}
             </div>
+
+            {/* Furnishing status — only for APARTMENT and VILLA */}
+            {(watch("type") === "APARTMENT" || watch("type") === "VILLA") && (
+              <div className="space-y-2">
+                <Label htmlFor="furnishingStatus">Furnishing Status</Label>
+                <Select onValueChange={(value) => setValue("furnishingStatus" as any, value)}>
+                  <SelectTrigger id="furnishingStatus">
+                    <SelectValue placeholder="Select furnishing status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FURNISHED">Furnished</SelectItem>
+                    <SelectItem value="UNFURNISHED">Unfurnished</SelectItem>
+                    <SelectItem value="PARTIALLY_FURNISHED">Partially Furnished</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Price per night — only for VILLA */}
+            {watch("type") === "VILLA" && (
+              <div className="space-y-2">
+                <Label htmlFor="pricePerNight">Price Per Night (ETB) <span className="text-destructive">*</span></Label>
+                <Input
+                  id="pricePerNight"
+                  type="number"
+                  min={0}
+                  {...register("pricePerNight" as any, { valueAsNumber: true })}
+                  placeholder="e.g. 5000"
+                />
+                <p className="text-xs text-muted-foreground">Villas are booked as whole units — set the nightly price here</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -7,6 +7,8 @@ model Property {
   type       PropertyType @default(HOTEL)
   visibility Boolean      @default(true)
 
+  furnishingStatus FurnishingStatus?
+
   // Discount
   discountPercent Float @default(0) // e.g. 20 = 20% off
 
@@ -230,4 +232,10 @@ enum CarServicePricingType {
   PER_TRIP
   PER_DAY
   PER_HOUR
+}
+
+enum FurnishingStatus {
+  FURNISHED
+  UNFURNISHED
+  PARTIALLY_FURNISHED
 }

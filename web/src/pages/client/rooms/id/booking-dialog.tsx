@@ -132,33 +132,83 @@ export default function BookingDialog({
     );
   };
   const { user } = useClientAuth();
+  const [manualPaymentStep, setManualPaymentStep] = useState(false);
+  const [bookingId, setBookingId] = useState<string | null>(null);
+  const [siteConfig, setSiteConfig] = useState<any>(null);
+  const [paymentRef, setPaymentRef] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentFullName, setPaymentFullName] = useState("");
+  const [paymentScreenshot, setPaymentScreenshot] = useState<File | null>(null);
+  const [paymentError, setPaymentError] = useState("");
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+
+  // Fetch site config for bank details
+  useEffect(() => {
+    import("@/hooks/api").then(({ api }) => {
+      api.get("/site-config").then((res) => setSiteConfig(res.data)).catch(() => {});
+    });
+  }, []);
+
   const handleBookNow = async () => {
-    if (propertyId) {
-      // Property-level booking (villa/guest house)
-      const { api } = await import("@/hooks/api");
-      const res = await api.post(`/properties/${propertyId}/book`, {
-        checkIn,
-        checkOut,
-        guests: Number(guests),
-        userId: user?.id,
-      });
-      if (res.data.checkoutUrl) {
-        location.replace(res.data.checkoutUrl);
+    try {
+      if (propertyId) {
+        const { api } = await import("@/hooks/api");
+        const res = await api.post(`/properties/${propertyId}/book`, {
+          checkIn, checkOut, guests: Number(guests), userId: user?.id,
+        });
+        if (res.data.paymentMethod === "MANUAL_BANK_TRANSFER") {
+          setBookingId(res.data.bookingId);
+          setManualPaymentStep(true);
+          return;
+        }
+        if (res.data.checkoutUrl) location.replace(res.data.checkoutUrl);
+        return;
       }
+      const res = await bookNowMutation.mutateAsync({
+        additionalServices: [],
+        checkIn, checkOut,
+        guests: Number(guests),
+        userId: user?.id as any,
+        roomId: room.id,
+      });
+      if ((res as any).paymentMethod === "MANUAL_BANK_TRANSFER") {
+        setBookingId((res as any).bookingId);
+        setManualPaymentStep(true);
+        return;
+      }
+      if ((res as any).checkoutUrl) location.replace((res as any).checkoutUrl);
+    } catch (err: any) {
+      console.error("Booking failed:", err);
+    }
+  };
+
+  const handleSubmitPayment = async () => {
+    setPaymentError("");
+    if (!paymentRef || !paymentAmount || !paymentFullName || !paymentScreenshot) {
+      setPaymentError("All fields are required");
       return;
     }
-    // Room-level booking
-    const res = await bookNowMutation.mutateAsync({
-      additionalServices: [],
-      checkIn: checkIn,
-      checkOut: checkOut,
-      guests: Number(guests),
-      userId: user?.id as any,
-      roomId: room.id,
-    });
-
-    if (res.checkoutUrl) {
-      location.replace(res.checkoutUrl);
+    if (!paymentScreenshot.type.startsWith("image/")) {
+      setPaymentError("Screenshot must be an image file");
+      return;
+    }
+    try {
+      const { api } = await import("@/hooks/api");
+      // Upload screenshot to cloudinary via backend upload endpoint
+      const formData = new FormData();
+      formData.append("file", paymentScreenshot);
+      const uploadRes = await api.post("/upload", formData, { headers: { "Content-Type": "multipart/form-data" } });
+      const screenshotUrl = uploadRes.data?.url || uploadRes.data?.secure_url;
+      await api.post("/payments/submit", {
+        bookingId,
+        referenceNumber: paymentRef,
+        amountPaid: Number(paymentAmount),
+        fullName: paymentFullName,
+        screenshotUrl,
+      });
+      setPaymentSuccess(true);
+    } catch (err: any) {
+      setPaymentError(err?.response?.data?.message || "Failed to submit payment");
     }
   };
 
@@ -352,7 +402,63 @@ export default function BookingDialog({
   // Step 2: Receipt/Review
   const receiptContent = (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 pb-2 border-b border-border">
+      {manualPaymentStep ? (
+        // Manual bank transfer step
+        paymentSuccess ? (
+          <div className="text-center py-8 space-y-3">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+              <Check className="w-8 h-8 text-green-600" />
+            </div>
+            <h3 className="font-bold text-lg">Payment Submitted!</h3>
+            <p className="text-sm text-muted-foreground">Your payment details have been submitted for Admin review. You'll be notified once approved.</p>
+            <Button className="w-full" onClick={() => { onClose(); }}>Close</Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-border">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">3</div>
+              <span className="text-sm font-medium">Bank Transfer Payment</span>
+            </div>
+            {siteConfig?.bankName && (
+              <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 space-y-2">
+                <h4 className="font-semibold text-sm text-blue-800 dark:text-blue-200">Transfer to this account:</h4>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Bank:</span><span className="font-medium">{siteConfig.bankName}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Account Name:</span><span className="font-medium">{siteConfig.bankAccountHolder}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Account Number:</span><span className="font-bold text-primary">{siteConfig.bankAccountNumber}</span></div>
+                  {siteConfig.bankInstructions && <p className="text-xs text-muted-foreground mt-2">{siteConfig.bankInstructions}</p>}
+                </div>
+              </div>
+            )}
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium">Reference Number *</label>
+                <input className="w-full mt-1 px-3 py-2 rounded-lg border border-input bg-card text-sm" placeholder="Transaction reference number" value={paymentRef} onChange={e => setPaymentRef(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Amount Paid (ETB) *</label>
+                <input type="number" className="w-full mt-1 px-3 py-2 rounded-lg border border-input bg-card text-sm" placeholder={total.toString()} value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Full Name *</label>
+                <input className="w-full mt-1 px-3 py-2 rounded-lg border border-input bg-card text-sm" placeholder="Your full name" value={paymentFullName} onChange={e => setPaymentFullName(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Payment Screenshot *</label>
+                <input type="file" accept="image/*" className="w-full mt-1 text-sm" onChange={e => { const f = e.target.files?.[0]; if (f && !f.type.startsWith("image/")) { setPaymentError("File must be an image"); } else { setPaymentScreenshot(f || null); setPaymentError(""); } }} />
+                {paymentScreenshot && <p className="text-xs text-green-600 mt-1">✓ {paymentScreenshot.name}</p>}
+              </div>
+              {paymentError && <p className="text-xs text-red-500">{paymentError}</p>}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setManualPaymentStep(false)}>Back</Button>
+              <Button className="flex-1" onClick={handleSubmitPayment}>Submit Payment</Button>
+            </div>
+          </div>
+        )
+      ) : (
+        <div className="space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b border-border">
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
           2
         </div>
@@ -483,6 +589,8 @@ export default function BookingDialog({
       <p className="text-center text-xs text-muted-foreground">
         You won't be charged yet
       </p>
+    </div>
+      )}
     </div>
   );
 

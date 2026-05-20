@@ -38,6 +38,7 @@ export default function CustomizationPage() {
     heroTitle: "", heroSubtitle: "",
     youtube: "", tiktok: "", telegram: "", instagram: "",
     contactPhone: "", contactEmail: "", contactAddress: "",
+    bankName: "", bankAccountHolder: "", bankAccountNumber: "", bankInstructions: "",
   });
   const [extraSocials, setExtraSocials] = useState<ExtraSocial[]>([]);
 
@@ -49,6 +50,8 @@ export default function CustomizationPage() {
         heroTitle: d.heroTitle || "", heroSubtitle: d.heroSubtitle || "",
         youtube: d.youtube || "", tiktok: d.tiktok || "", telegram: d.telegram || "", instagram: d.instagram || "",
         contactPhone: d.contactPhone || "", contactEmail: d.contactEmail || "", contactAddress: d.contactAddress || "",
+        bankName: d.bankName || "", bankAccountHolder: d.bankAccountHolder || "",
+        bankAccountNumber: d.bankAccountNumber || "", bankInstructions: d.bankInstructions || "",
       });
       if (Array.isArray(d.extraSocials)) setExtraSocials(d.extraSocials);
     }).catch(() => {}).finally(() => setLoading(false));
@@ -268,6 +271,34 @@ export default function CustomizationPage() {
               <div className="space-y-1.5">
                 <Label>Address / Location</Label>
                 <Input value={form.contactAddress} onChange={e => setForm(f => ({ ...f, contactAddress: e.target.value }))} placeholder="Bole, Addis Ababa, Ethiopia" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Bank Account for Manual Payments */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <span className="text-lg">🏦</span> Bank Account for Payments
+              </CardTitle>
+              <CardDescription>Bank account details guests use for manual bank transfer payments</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>Bank Name <span className="text-red-500">*</span></Label>
+                <Input value={form.bankName} onChange={e => setForm(f => ({ ...f, bankName: e.target.value }))} placeholder="e.g. Commercial Bank of Ethiopia" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Account Holder Name <span className="text-red-500">*</span></Label>
+                <Input value={form.bankAccountHolder} onChange={e => setForm(f => ({ ...f, bankAccountHolder: e.target.value }))} placeholder="e.g. Kuru Rent PLC" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Account Number <span className="text-red-500">*</span></Label>
+                <Input value={form.bankAccountNumber} onChange={e => setForm(f => ({ ...f, bankAccountNumber: e.target.value }))} placeholder="e.g. 1000123456789" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Additional Instructions (optional)</Label>
+                <Input value={form.bankInstructions} onChange={e => setForm(f => ({ ...f, bankInstructions: e.target.value }))} placeholder="e.g. Include your booking ID in the transfer note" />
               </div>
             </CardContent>
           </Card>

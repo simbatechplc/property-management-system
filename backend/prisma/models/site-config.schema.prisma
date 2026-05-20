@@ -13,6 +13,10 @@ model SiteConfig {
   contactEmail    String?
   contactAddress  String?
   extraSocials    Json?
+  bankName            String?
+  bankAccountHolder   String?
+  bankAccountNumber   String?
+  bankInstructions    String?
   updatedAt   DateTime @updatedAt
 }
 
