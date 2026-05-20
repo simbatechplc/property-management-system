@@ -122,15 +122,15 @@ router.post("/:id/book", authGuard(), async (req: any, res) => {
     // Find or create a synthetic room for property-level bookings
     let room = property.rooms[0];
     if (!room) {
-      // Create a synthetic room for villa/guest house bookings
-      room = await prisma.room.create({
+      room = await (prisma.room.create as any)({
         data: {
           name: `${property.name} - Main`,
           roomId: `${propertyId}-main`,
           price: property.pricePerNight,
-          property: { connect: { id: propertyId } },
+          propertyId,
           availability: true,
           maxOccupancy: 10,
+          squareMeters: 0,
         },
       });
     }
