@@ -89,7 +89,6 @@ router.post("/:id/price", authGuard({ cantAccessBy: ["GUEST"] }), async (req, re
 // Book a private property as a whole (villa/guest house)
 router.post("/:id/book", authGuard(), async (req: any, res) => {
   const { prisma } = await import("../../lib/prisma");
-  const { initializeChapaPayment } = await import("../../services/payments.service");
   const { id: propertyId } = req.params;
   const { checkIn, checkOut, guests, userId } = req.body;
   const user = req.user;
@@ -104,24 +103,11 @@ router.post("/:id/book", authGuard(), async (req: any, res) => {
     if (!property) return res.status(404).json({ message: "Property not found" });
     if (!property.pricePerNight) return res.status(400).json({ message: "Property price not set. Please contact admin." });
 
-    const room = property.rooms[0];
-    if (!room) return res.status(400).json({ message: "No rooms found for this property. Please add at least one room in admin." });
-
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
     if (checkOutDate <= checkInDate) return res.status(400).json({ message: "Check-out must be after check-in" });
 
     const totalNights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
-
-    // Check for overlapping bookings
-    const overlapping = await prisma.booking.findFirst({
-      where: {
-        roomId: room.id,
-        status: { notIn: ["CANCELLED", "REJECTED"] },
-        OR: [{ checkIn: { lte: checkOutDate }, checkOut: { gte: checkInDate } }],
-      },
-    });
-    if (overlapping) return res.status(409).json({ message: "Property is not available for the selected dates" });
 
     const userDoc = await prisma.user.findUnique({ where: { id: bookingUserId } });
     if (!userDoc) return res.status(401).json({ message: "User not found" });
@@ -131,30 +117,22 @@ router.post("/:id/book", authGuard(), async (req: any, res) => {
     const effectivePrice = propDiscount > 0 ? property.pricePerNight * (1 - propDiscount / 100) : property.pricePerNight;
     const discountAmount = (property.pricePerNight - effectivePrice) * totalNights;
     const totalAmount = effectivePrice * totalNights;
-    const txRef = `tx-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    const CLIENT_FRONTEND_URL = process.env.CLIENT_FRONTEND_URL;
 
-    const brokerRecord = await prisma.managedProperty.findFirst({
-      where: { propertyId, role: "BROKER" },
-      select: { userId: true },
-    });
-
-    const { chapaResponse } = await initializeChapaPayment({
-      data: {
-        amount: totalAmount,
-        customerName: userDoc.name,
-        email: userDoc.email,
-        phoneNumber: userDoc.phone,
-        txRef,
-        callbackUrl: `${CLIENT_FRONTEND_URL}/account/bookings?txRef=${txRef}`,
-        returnUrl: `${CLIENT_FRONTEND_URL}/account/bookings?txRef=${txRef}`,
-      },
-      propertyId,
-      brokerId: brokerRecord?.userId || "",
-    });
-
-    if (!chapaResponse?.checkout_url && !chapaResponse?.data?.checkout_url) {
-      return res.status(502).json({ message: "Payment initialization failed. Please try again." });
+    // 🏦 CHAPA_ENABLED=false — use manual bank transfer
+    // Find or create a synthetic room for property-level bookings
+    let room = property.rooms[0];
+    if (!room) {
+      // Create a synthetic room for villa/guest house bookings
+      room = await prisma.room.create({
+        data: {
+          name: `${property.name} - Main`,
+          roomId: `${propertyId}-main`,
+          price: property.pricePerNight,
+          propertyId,
+          availability: true,
+          maxOccupancy: 10,
+        },
+      });
     }
 
     const newBooking = await prisma.booking.create({
@@ -173,9 +151,8 @@ router.post("/:id/book", authGuard(), async (req: any, res) => {
         property: { connect: { id: propertyId } },
         payment: {
           create: {
-            transactionRef: txRef,
             status: "PENDING",
-            method: "ONLINE",
+            method: "CASH",
             pendingAmount: totalAmount,
           },
         },
@@ -185,7 +162,7 @@ router.post("/:id/book", authGuard(), async (req: any, res) => {
     await prisma.activity.create({
       data: {
         action: "BOOKED",
-        description: `Property booking by ${userDoc.name} for "${property.name}". Check-in: ${checkInDate.toLocaleDateString()}, Check-out: ${checkOutDate.toLocaleDateString()}. Total: ETB ${totalAmount}`,
+        description: `Property booking by ${userDoc.name} for "${property.name}". Check-in: ${checkInDate.toLocaleDateString()}, Check-out: ${checkOutDate.toLocaleDateString()}. Total: ETB ${totalAmount}. Awaiting manual bank transfer.`,
         userId: bookingUserId,
         bookingId: newBooking.id,
         roomId: room.id,
@@ -196,7 +173,9 @@ router.post("/:id/book", authGuard(), async (req: any, res) => {
 
     return res.status(201).json({
       success: true,
-      checkoutUrl: chapaResponse?.checkout_url ?? chapaResponse?.data?.checkout_url,
+      paymentMethod: "MANUAL_BANK_TRANSFER",
+      bookingId: newBooking.id,
+      totalAmount,
     });
   } catch (e: any) {
     return res.status(500).json({ message: e?.message || "Booking failed" });

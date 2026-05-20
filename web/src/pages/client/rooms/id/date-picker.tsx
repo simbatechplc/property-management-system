@@ -1,13 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Calendar as CalendarIcon, X as XIcon, Trash } from "lucide-react";
+import { Calendar as CalendarIcon, X as XIcon, Trash, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { format, eachDayOfInterval, isWithinInterval } from "date-fns";
+import { format, eachDayOfInterval } from "date-fns";
 
 type BookedRange = { checkIn: string | Date; checkOut: string | Date };
 
@@ -32,12 +27,10 @@ export default function DateRangePicker({
   setCheckOut,
   bookedRanges = [],
 }: Props) {
-  const [open, setOpen] = useState(false);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [activeField, setActiveField] = useState<"checkIn" | "checkOut" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
 
-  // Build a set of all booked date strings for fast lookup
   const bookedDates = React.useMemo(() => {
     const set = new Set<string>();
     bookedRanges.forEach(({ checkIn: ci, checkOut: co }) => {
@@ -55,11 +48,7 @@ export default function DateRangePicker({
     return set;
   }, [bookedRanges]);
 
-  const isBooked = (date: Date) => {
-    const key = date.toISOString().split("T")[0];
-    return bookedDates.has(key);
-  };
-
+  const isBooked = (date: Date) => bookedDates.has(date.toISOString().split("T")[0]);
   const isPast = (date: Date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -78,129 +67,114 @@ export default function DateRangePicker({
   function clearDates() {
     setCheckIn(null);
     setCheckOut(null);
+    setActiveField(null);
   }
 
   const disabledCheckIn = (date: Date) => isPast(date) || isBooked(date);
   const disabledCheckOut = (date: Date) =>
     isPast(date) || isBooked(date) || (checkIn ? date < checkIn : false);
 
-  const modifiers = {
-    booked: (date: Date) => isBooked(date),
-  };
-
-  const modifiersClassNames = {
-    booked: "line-through text-red-400 opacity-60 cursor-not-allowed",
-  };
+  const modifiers = { booked: (date: Date) => isBooked(date) };
+  const modifiersClassNames = { booked: "line-through text-red-400 opacity-60 cursor-not-allowed" };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div>
-        <label className="mb-2 block text-sm font-medium text-foreground">
-          Check-in
-        </label>
-        <div className="flex items-center gap-2 rounded-lg border border-input bg-card px-3 py-2">
-          <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="ghost"
-                className="flex-1 justify-start px-0 py-0 text-sm text-foreground"
-              >
-                <span className="truncate">
-                  {checkIn ? format(checkIn, "MMM d, yyyy") : "Select"}
-                </span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-2 z-[99999]" align="start" side="bottom" avoidCollisions sideOffset={4}>
-              <div className="overflow-auto max-h-[min(400px,60vh)]">
-              <Calendar
-                mode="single"
-                disabled={disabledCheckIn}
-                modifiers={modifiers}
-                modifiersClassNames={modifiersClassNames}
-                onDayMouseEnter={(date) => setHoveredDate(date)}
-                onDayMouseLeave={() => setHoveredDate(null)}
-                footer={
-                  hoveredDate && isBooked(hoveredDate) ? (
-                    <p className="text-xs text-red-500 text-center pt-1">
-                      This date is already booked
-                    </p>
-                  ) : null
-                }
-                onSelect={(date) => {
-                  setCheckIn(date as Date);
-                  if (checkOut && date && checkOut < (date as Date))
-                    setCheckOut(null);
-                  setOpen(false);
-                }}
-              />
-              </div>
-              <div className="mt-2 flex items-center justify-between gap-2">
-                <Button size="sm" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); }}>Done</Button>
-                <Button size="sm" variant="secondary" onPointerDown={(e) => { e.preventDefault(); clearDates(); }} title="Clear dates">
-                  <Trash className="h-4 w-4" />
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
+    <div className="space-y-3">
+      {/* Date input buttons */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Check-in</label>
+          <button
+            type="button"
+            onClick={() => setActiveField(activeField === "checkIn" ? null : "checkIn")}
+            className={`w-full flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+              activeField === "checkIn" ? "border-primary bg-primary/5" : "border-input bg-card hover:border-primary/50"
+            }`}
+          >
+            <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span className={checkIn ? "text-foreground" : "text-muted-foreground"}>
+              {checkIn ? format(checkIn, "MMM d, yyyy") : "Select date"}
+            </span>
+            <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto" />
+          </button>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Check-out</label>
+          <button
+            type="button"
+            onClick={() => setActiveField(activeField === "checkOut" ? null : "checkOut")}
+            className={`w-full flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+              activeField === "checkOut" ? "border-primary bg-primary/5" : "border-input bg-card hover:border-primary/50"
+            }`}
+          >
+            <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span className={checkOut ? "text-foreground" : "text-muted-foreground"}>
+              {checkOut ? format(checkOut, "MMM d, yyyy") : "Select date"}
+            </span>
+            <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto" />
+          </button>
         </div>
       </div>
 
-      <div>
-        <label className="mb-2 block text-sm font-medium text-foreground">
-          Check-out
-        </label>
-        <div className="flex items-center gap-2 rounded-lg border border-input bg-card px-3 py-2">
-          <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-          <Popover open={checkoutOpen} onOpenChange={setCheckoutOpen}>
-            <PopoverTrigger asChild>
+      {/* Inline calendar — renders below the buttons, inside the scrollable dialog */}
+      {activeField && (
+        <div className="rounded-xl border border-border bg-background shadow-sm p-2">
+          <div className="flex items-center justify-between mb-2 px-1">
+            <span className="text-xs font-medium text-muted-foreground">
+              {activeField === "checkIn" ? "Select check-in date" : "Select check-out date"}
+            </span>
+            <div className="flex gap-1">
               <Button
+                size="sm"
                 variant="ghost"
-                className="flex-1 justify-start px-0 py-0 text-sm text-foreground"
+                className="h-6 text-xs px-2"
+                onPointerDown={(e) => { e.preventDefault(); setActiveField(null); }}
               >
-                <span className="truncate">
-                  {checkOut ? format(checkOut, "MMM d, yyyy") : "Select"}
-                </span>
+                Done
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-2 z-[99999]" align="start" side="bottom" avoidCollisions sideOffset={4}>
-              <div className="overflow-auto max-h-[min(400px,60vh)]">
-              <Calendar
-                mode="single"
-                disabled={disabledCheckOut}
-                modifiers={modifiers}
-                modifiersClassNames={modifiersClassNames}
-                onDayMouseEnter={(date) => setHoveredDate(date)}
-                onDayMouseLeave={() => setHoveredDate(null)}
-                footer={
-                  hoveredDate && isBooked(hoveredDate) ? (
-                    <p className="text-xs text-red-500 text-center pt-1">
-                      This date is already booked
-                    </p>
-                  ) : null
-                }
-                onSelect={(date) => {
-                  setCheckOut(date as Date);
-                  setCheckoutOpen(false);
-                }}
-              />
-              </div>
-              <div className="mt-2 flex items-center justify-between gap-2">
-                <Button size="sm" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setCheckoutOpen(false); }}>Done</Button>
-                <Button size="sm" variant="secondary" onPointerDown={(e) => { e.preventDefault(); clearDates(); }} title="Clear dates">
-                  <Trash className="h-4 w-4" />
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-        {error && (
-          <div className="mt-2 flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
-            <XIcon className="h-3 w-3" />
-            {error}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 text-xs px-2 text-destructive"
+                onPointerDown={(e) => { e.preventDefault(); clearDates(); }}
+              >
+                <Trash className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
-        )}
-      </div>
+          <Calendar
+            mode="single"
+            selected={activeField === "checkIn" ? checkIn : checkOut}
+            disabled={activeField === "checkIn" ? disabledCheckIn : disabledCheckOut}
+            modifiers={modifiers}
+            modifiersClassNames={modifiersClassNames}
+            onDayMouseEnter={(date) => setHoveredDate(date)}
+            onDayMouseLeave={() => setHoveredDate(null)}
+            footer={
+              hoveredDate && isBooked(hoveredDate) ? (
+                <p className="text-xs text-red-500 text-center pt-1">This date is already booked</p>
+              ) : null
+            }
+            onSelect={(date) => {
+              if (activeField === "checkIn") {
+                setCheckIn(date as Date);
+                if (checkOut && date && checkOut < (date as Date)) setCheckOut(null);
+                setActiveField("checkOut"); // auto-advance to checkout
+              } else {
+                setCheckOut(date as Date);
+                setActiveField(null); // close after checkout selected
+              }
+            }}
+            className="mx-auto"
+          />
+        </div>
+      )}
+
+      {error && (
+        <div className="flex items-center gap-2 text-xs text-red-600 dark:text-red-400">
+          <XIcon className="h-3 w-3" />
+          {error}
+        </div>
+      )}
     </div>
   );
 }
