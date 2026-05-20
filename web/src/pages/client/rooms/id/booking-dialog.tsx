@@ -161,7 +161,8 @@ export default function BookingDialog({
           setManualPaymentStep(true);
           return;
         }
-        if (res.data.checkoutUrl) location.replace(res.data.checkoutUrl);
+        // Chapa temporarily disabled — manual bank transfer only
+        // if (res.data.checkoutUrl) location.replace(res.data.checkoutUrl);
         return;
       }
       const res = await bookNowMutation.mutateAsync({
@@ -176,7 +177,8 @@ export default function BookingDialog({
         setManualPaymentStep(true);
         return;
       }
-      if ((res as any).checkoutUrl) location.replace((res as any).checkoutUrl);
+      // Chapa temporarily disabled — manual bank transfer only
+      // if ((res as any).checkoutUrl) location.replace((res as any).checkoutUrl);
     } catch (err: any) {
       console.error("Booking failed:", err);
     }
@@ -568,6 +570,18 @@ export default function BookingDialog({
         </div>
       </div>
 
+      {/* Bank transfer info shown before Book Now */}
+      {siteConfig?.bankName && (
+        <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 space-y-1.5">
+          <p className="font-semibold text-xs text-blue-800 dark:text-blue-200">📋 After clicking Book Now, transfer to:</p>
+          <div className="space-y-1 text-xs">
+            <div className="flex justify-between"><span className="text-muted-foreground">Bank:</span><span className="font-medium">{siteConfig.bankName}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Account Name:</span><span className="font-medium">{siteConfig.bankAccountHolder}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Account No:</span><span className="font-bold text-primary">{siteConfig.bankAccountNumber}</span></div>
+          </div>
+        </div>
+      )}
+
       {/* Action Buttons - always visible */}
       <div className="flex gap-2">
         <Button
@@ -588,9 +602,8 @@ export default function BookingDialog({
       </div>
 
       <p className="text-center text-xs text-muted-foreground">
-        You won't be charged yet
+        Click Book Now, then submit your transfer proof
       </p>
-    </div>
       )}
     </div>
   );

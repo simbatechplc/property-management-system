@@ -111,7 +111,8 @@ export default function DateRangePicker({
                 </span>
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-2 z-[99999]" align="center" side="top" avoidCollisions sideOffset={8}>
+            <PopoverContent className="w-auto p-2 z-[99999]" align="start" side="bottom" avoidCollisions sideOffset={4}>
+              <div className="overflow-auto max-h-[min(400px,60vh)]">
               <Calendar
                 mode="single"
                 disabled={disabledCheckIn}
@@ -133,6 +134,7 @@ export default function DateRangePicker({
                   setOpen(false);
                 }}
               />
+              </div>
               <div className="mt-2 flex items-center justify-between gap-2">
                 <Button size="sm" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); }}>Done</Button>
                 <Button size="sm" variant="secondary" onPointerDown={(e) => { e.preventDefault(); clearDates(); }} title="Clear dates">
@@ -161,7 +163,8 @@ export default function DateRangePicker({
                 </span>
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-2 z-[99999]" align="center" side="top" avoidCollisions sideOffset={8}>
+            <PopoverContent className="w-auto p-2 z-[99999]" align="start" side="bottom" avoidCollisions sideOffset={4}>
+              <div className="overflow-auto max-h-[min(400px,60vh)]">
               <Calendar
                 mode="single"
                 disabled={disabledCheckOut}
@@ -181,6 +184,7 @@ export default function DateRangePicker({
                   setCheckoutOpen(false);
                 }}
               />
+              </div>
               <div className="mt-2 flex items-center justify-between gap-2">
                 <Button size="sm" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setCheckoutOpen(false); }}>Done</Button>
                 <Button size="sm" variant="secondary" onPointerDown={(e) => { e.preventDefault(); clearDates(); }} title="Clear dates">
