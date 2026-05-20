@@ -128,7 +128,7 @@ router.post("/:id/book", authGuard(), async (req: any, res) => {
           name: `${property.name} - Main`,
           roomId: `${propertyId}-main`,
           price: property.pricePerNight,
-          propertyId,
+          property: { connect: { id: propertyId } },
           availability: true,
           maxOccupancy: 10,
         },
