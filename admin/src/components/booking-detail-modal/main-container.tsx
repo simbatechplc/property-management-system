@@ -435,104 +435,129 @@ export function BookingDetailContent({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Payment Status
-                      </p>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-base px-4 py-2",
-                          paymentStatusConfig[booking.payment.status].className
-                        )}
-                      >
-                        {paymentStatusConfig[booking.payment.status].label}
+                      <p className="text-sm text-muted-foreground mb-2">Payment Status</p>
+                      <Badge variant="outline" className={cn("text-base px-4 py-2", paymentStatusConfig[booking.payment.status]?.className)}>
+                        {paymentStatusConfig[booking.payment.status]?.label || booking.payment.status}
                       </Badge>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Payment Method
-                      </p>
+                      <p className="text-sm text-muted-foreground mb-2">Payment Method</p>
                       <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                         <CreditCard className="h-4 w-4 text-muted-foreground" />
-                        <p className="font-medium">{booking.payment.method}</p>
+                        <p className="font-medium">
+                          {(booking as any).paymentSubmission ? "Manual Bank Transfer" : booking.payment.method}
+                        </p>
                       </div>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Amount Paid
-                      </p>
+                      <p className="text-sm text-muted-foreground mb-2">Amount Paid</p>
                       <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                         <p className="font-medium text-xl">
-                          {booking.currency}{" "}
-                          {booking.payment.amount?.toFixed(2) || "0.00"}
+                          {booking.currency} {((booking as any).paymentSubmission?.amountPaid || booking.payment.amount)?.toFixed(2) || "0.00"}
                         </p>
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    {booking.payment.transactionId && (
+                    {booking.payment.transactionRef && !(booking as any).paymentSubmission && (
                       <div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Transaction ID
-                        </p>
+                        <p className="text-sm text-muted-foreground mb-2">Transaction Reference</p>
                         <div className="p-3 rounded-lg bg-muted/50">
-                          <p className="font-mono text-sm break-all">
-                            {booking.payment.transactionId}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {booking.payment.transactionRef && (
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Transaction Reference
-                        </p>
-                        <div className="p-3 rounded-lg bg-muted/50">
-                          <p className="font-mono text-sm break-all">
-                            {booking.payment.transactionRef}
-                          </p>
+                          <p className="font-mono text-sm break-all">{booking.payment.transactionRef}</p>
                         </div>
                       </div>
                     )}
                     {booking.payment.phoneNumber && (
                       <div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Phone Number
-                        </p>
+                        <p className="text-sm text-muted-foreground mb-2">Phone Number</p>
                         <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                           <Phone className="h-4 w-4 text-muted-foreground" />
-                          <p className="font-medium">
-                            {booking.payment.phoneNumber}
-                          </p>
+                          <p className="font-medium">{booking.payment.phoneNumber}</p>
                         </div>
                       </div>
                     )}
                     <div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Payment Date
-                      </p>
+                      <p className="text-sm text-muted-foreground mb-2">Payment Date</p>
                       <div className="p-3 rounded-lg bg-muted/50">
-                        <p className="text-sm">
-                          {format(
-                            new Date(booking.payment.createdAt),
-                            "PPP 'at' p"
-                          )}
-                        </p>
+                        <p className="text-sm">{format(new Date(booking.payment.createdAt), "PPP 'at' p")}</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
+                {/* Manual Bank Transfer Submission Details */}
+                {(booking as any).paymentSubmission && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm font-semibold mb-3 flex items-center gap-2">
+                        <Receipt className="h-4 w-4 text-primary" />
+                        Bank Transfer Submission
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Full Name</p>
+                          <div className="p-3 rounded-lg bg-muted/50">
+                            <p className="font-medium">{(booking as any).paymentSubmission.fullName}</p>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Reference Number</p>
+                          <div className="p-3 rounded-lg bg-muted/50">
+                            <p className="font-mono font-medium">{(booking as any).paymentSubmission.referenceNumber}</p>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Amount Transferred</p>
+                          <div className="p-3 rounded-lg bg-muted/50">
+                            <p className="font-bold text-lg text-primary">ETB {(booking as any).paymentSubmission.amountPaid?.toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Submission Status</p>
+                          <div className="p-3 rounded-lg bg-muted/50">
+                            <Badge variant={
+                              (booking as any).paymentSubmission.status === "APPROVED" ? "default" :
+                              (booking as any).paymentSubmission.status === "REJECTED" ? "destructive" : "secondary"
+                            }>
+                              {(booking as any).paymentSubmission.status}
+                            </Badge>
+                          </div>
+                        </div>
+                        {(booking as any).paymentSubmission.screenshotUrl && (
+                          <div className="md:col-span-2">
+                            <p className="text-xs text-muted-foreground mb-1">Payment Screenshot</p>
+                            <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+                              <a
+                                href={(booking as any).paymentSubmission.screenshotUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 text-sm text-primary underline hover:no-underline"
+                              >
+                                <FileText className="h-4 w-4" />
+                                View Screenshot
+                              </a>
+                              <div className="mt-2">
+                                <img
+                                  src={(booking as any).paymentSubmission.screenshotUrl}
+                                  alt="Payment screenshot"
+                                  className="max-h-48 rounded-lg border border-border object-contain"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+
                 {booking.payment.status === PaymentStatus.SUCCESS && (
                   <>
                     <Separator />
-                    <Button
-                      variant="destructive"
-                      className="w-full"
-                      onClick={() => onRefund?.(booking.id)}
-                    >
+                    <Button variant="destructive" className="w-full" onClick={() => onRefund?.(booking.id)}>
                       Process Refund
                     </Button>
                   </>
@@ -541,12 +566,8 @@ export function BookingDetailContent({
             ) : (
               <div className="text-center py-12">
                 <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-lg font-medium mb-2">
-                  No Payment Information
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Payment details will appear here once processed
-                </p>
+                <p className="text-lg font-medium mb-2">No Payment Information</p>
+                <p className="text-sm text-muted-foreground">Payment details will appear here once processed</p>
               </div>
             )}
           </CardContent>

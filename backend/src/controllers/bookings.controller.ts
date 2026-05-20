@@ -797,6 +797,7 @@ export default {
             phoneNumber: true,
           },
         },
+        paymentSubmission: true,
         activities: {
           select: {
             id: true,

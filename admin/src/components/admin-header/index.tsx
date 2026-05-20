@@ -96,6 +96,16 @@ function NotificationBell() {
                         {ACTION_LABELS[n.action] || n.action}
                       </span>
                       {isNew && <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full shrink-0 mt-0.5">New</span>}
+                      <button
+                        title="View full details"
+                        onClick={() => {
+                          const detail = `${ACTION_LABELS[n.action] || n.action}\n\n${n.description}\n\nTime: ${new Date(n.timestamp).toLocaleString()}`;
+                          alert(detail);
+                        }}
+                        className="ml-auto shrink-0 w-5 h-5 rounded-full border border-muted-foreground/30 flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-foreground transition-colors text-[10px] font-bold"
+                      >
+                        i
+                      </button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{n.description}</p>
                     <p className="text-[10px] text-muted-foreground/60 mt-1">

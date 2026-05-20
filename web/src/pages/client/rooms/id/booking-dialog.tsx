@@ -447,8 +447,35 @@ export default function BookingDialog({
               </div>
               <div>
                 <label className="text-sm font-medium">Payment Screenshot *</label>
-                <input type="file" accept="image/*" className="w-full mt-1 text-sm" onChange={e => { const f = e.target.files?.[0]; if (f && !f.type.startsWith("image/")) { setPaymentError("File must be an image"); } else { setPaymentScreenshot(f || null); setPaymentError(""); } }} />
-                {paymentScreenshot && <p className="text-xs text-green-600 mt-1">✓ {paymentScreenshot.name}</p>}
+                <div className="mt-1">
+                  <label className="flex items-center gap-2 cursor-pointer w-full px-4 py-2.5 rounded-lg border border-input bg-card hover:bg-muted/50 transition-colors text-sm font-medium">
+                    <span>📎 Choose Screenshot</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={e => {
+                        const f = e.target.files?.[0];
+                        if (f && !f.type.startsWith("image/")) {
+                          setPaymentError("File must be an image");
+                        } else {
+                          setPaymentScreenshot(f || null);
+                          setPaymentError("");
+                        }
+                      }}
+                    />
+                  </label>
+                  {paymentScreenshot && (
+                    <div className="mt-2 space-y-1">
+                      <p className="text-xs text-green-600">✓ {paymentScreenshot.name}</p>
+                      <img
+                        src={URL.createObjectURL(paymentScreenshot)}
+                        alt="Screenshot preview"
+                        className="max-h-32 rounded-lg border border-border object-contain"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
               {paymentError && <p className="text-xs text-red-500">{paymentError}</p>}
             </div>
