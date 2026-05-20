@@ -66,6 +66,7 @@ enum ActivityAction {
   REPORT_SUBMITTED
   REPORT_APPROVED
   REPORT_REJECTED
+  REGISTRATION_REQUEST
 }
 
 enum ActivityStatus {
