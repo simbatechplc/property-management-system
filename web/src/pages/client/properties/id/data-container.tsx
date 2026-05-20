@@ -482,7 +482,7 @@ const DataContainer = ({ data }: Props) => {
                 <div className="flex items-center gap-2 mb-2">
                   <Badge variant="secondary" className="text-xs uppercase tracking-wide">{property.type || "Hotel"}</Badge>
                   {/* Furnishing status badge for APARTMENT and VILLA */}
-                  {(property.type === "APARTMENT" || property.type === "VILLA") && (property as any).furnishingStatus && (
+                  {((property as any).type === "APARTMENT" || (property as any).type === "VILLA") && (property as any).furnishingStatus && (
                     <Badge variant="outline" className="text-xs capitalize">
                       {((property as any).furnishingStatus as string).replace(/_/g, " ").toLowerCase()}
                     </Badge>
