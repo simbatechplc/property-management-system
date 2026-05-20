@@ -8,7 +8,10 @@ import type {
 } from "./types/booking.types";
 
 interface BookResponse {
-  checkoutUrl: string;
+  checkoutUrl?: string;
+  paymentMethod?: string;
+  bookingId?: string;
+  totalAmount?: number;
   success: boolean;
 }
 export const useBookNowMutation = () => {
@@ -24,11 +27,13 @@ export const useBookNowMutation = () => {
       additionalServices: { id: string }[] | null;
     }) => {
       const res = await api.post<BookResponse>(`/bookings`, data);
-
       return res.data;
     },
-    onSuccess: ({ message }: any) => {
-      toast.message(message, { position: "top-center" });
+    onSuccess: (data: BookResponse) => {
+      // Only show toast for manual bank transfer — Chapa redirect is handled in the component
+      if (data.paymentMethod === "MANUAL_BANK_TRANSFER") {
+        toast.success("Booking created! Please complete the bank transfer.", { position: "top-center" });
+      }
       queryClient.invalidateQueries({ queryKey: ["user_bookings"] });
     },
     onError: (error) => handleTanstackError({ error }),

@@ -17,13 +17,10 @@ router.get(
     let where: any = {};
 
     if (userRole === "ADMIN") {
-      // Admin sees all activities
       where = {};
     } else if (userRole === "BROKER") {
-      // Broker sees only activities they performed
       where = { userId };
     } else if (userRole === "OWNER" || userRole === "STAFF") {
-      // Owner/Staff see all activities in their assigned properties
       const managed = await prisma.managedProperty.findMany({
         where: { userId, role: { in: [userRole] } },
         select: { propertyId: true },
@@ -48,6 +45,50 @@ router.get(
     ]);
 
     res.json({ data: activities, total, page: Number(page), limit: Number(limit) });
+  })
+);
+
+// 🔔 Admin notifications endpoint — returns recent important activities
+router.get(
+  "/notifications",
+  authGuard({ accessedBy: ["ADMIN", "OWNER", "STAFF", "BROKER"] }),
+  tryCatch(async (req, res) => {
+    const userId = (req as any).user.id;
+    const userRole = (req as any).user.role;
+    const { limit = 20 } = req.query;
+
+    // Notification-worthy actions
+    const notifActions = ["BOOKED", "APPROVED_BOOKING", "REJECTED_BOOKING", "CANCELLED_BOOKING", "CREATE_GUEST_HOUSE", "REGISTRATION_REQUEST"];
+
+    let where: any = { action: { in: notifActions } };
+
+    if (userRole !== "ADMIN") {
+      const managed = await prisma.managedProperty.findMany({
+        where: { userId },
+        select: { propertyId: true },
+      });
+      const propertyIds = managed.map((m) => m.propertyId);
+      if (propertyIds.length) {
+        where = { ...where, propertyId: { in: propertyIds } };
+      } else {
+        where = { ...where, userId };
+      }
+    }
+
+    const notifications = await prisma.activity.findMany({
+      where,
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { timestamp: "desc" },
+      take: Number(limit),
+    });
+
+    // Count unread (created in last 24 hours)
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const unreadCount = notifications.filter(n => new Date(n.timestamp) > oneDayAgo).length;
+
+    res.json({ data: notifications, unreadCount });
   })
 );
 

@@ -12,7 +12,7 @@ export enum PropertyType {
 
 export const createPropertySchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
-  address: z.string().min(5, "Address must be at least 5 characters"),
+  address: z.string().min(2, "Address must be at least 2 characters"),
   type: z.nativeEnum(PropertyType).optional(),
   about: z
     .object({

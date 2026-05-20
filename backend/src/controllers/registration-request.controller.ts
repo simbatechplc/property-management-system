@@ -108,6 +108,15 @@ export default {
       console.error("Email sending failed:", emailError.message);
     }
 
+    // 🔔 Create admin notification activity
+    await prisma.activity.create({
+      data: {
+        action: "REGISTRATION_REQUEST",
+        description: `New ${registrationType} registration request from ${contactName} (${email}). Awaiting admin review.`,
+        status: "INFO",
+      },
+    }).catch(() => {});
+
     res.json({
       success: true,
       message: "Registration request submitted successfully",

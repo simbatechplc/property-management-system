@@ -3,7 +3,7 @@ import z from "zod";
 
 export const createPropertySchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
-  address: z.string().min(3, "Address must be at least 3 characters"),
+  address: z.string().min(2, "Address must be at least 2 characters"),
   type: z.nativeEnum(PropertyType).optional(),
   furnishingStatus: z.nativeEnum(FurnishingStatus).optional(),
   pricePerNight: z.number().positive().optional(),

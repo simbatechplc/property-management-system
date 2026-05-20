@@ -194,11 +194,12 @@ export default function BookingDialog({
     }
     try {
       const { api } = await import("@/hooks/api");
-      // Upload screenshot to cloudinary via backend upload endpoint
+      // Upload screenshot using the public upload endpoint
       const formData = new FormData();
       formData.append("file", paymentScreenshot);
-      const uploadRes = await api.post("/upload", formData, { headers: { "Content-Type": "multipart/form-data" } });
+      const uploadRes = await api.post("/users/upload-public", formData, { headers: { "Content-Type": "multipart/form-data" } });
       const screenshotUrl = uploadRes.data?.url || uploadRes.data?.secure_url;
+      if (!screenshotUrl) throw new Error("Screenshot upload failed");
       await api.post("/payments/submit", {
         bookingId,
         referenceNumber: paymentRef,
@@ -208,7 +209,7 @@ export default function BookingDialog({
       });
       setPaymentSuccess(true);
     } catch (err: any) {
-      setPaymentError(err?.response?.data?.message || "Failed to submit payment");
+      setPaymentError(err?.response?.data?.message || err?.message || "Failed to submit payment");
     }
   };
 
