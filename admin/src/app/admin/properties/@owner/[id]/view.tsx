@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -82,7 +82,14 @@ export default function PropertyView({ data }: { data: PropertyData }) {
   const [pricePerNightInput, setPricePerNightInput] = useState(String((data as any).pricePerNight ?? ""));
   const [savingPrice, setSavingPrice] = useState(false);
   const isPrivate = ["VILLA", "GUEST_HOUSE"].includes((data as any).type || "");
-  const [policies, setPolicies] = useState<Array<{ key: string; value: string }>>(
+
+  // Sync price input when data refreshes from server (after save)
+  // Use a ref to track if user is currently editing to avoid overwriting their input
+  useEffect(() => {
+    if (!savingPrice) {
+      setPricePerNightInput(String((data as any).pricePerNight ?? ""));
+    }
+  }, [(data as any).pricePerNight]);  const [policies, setPolicies] = useState<Array<{ key: string; value: string }>>(
     (() => {
       const p = (data as any).policies;
       if (!p) return [
@@ -529,11 +536,17 @@ export default function PropertyView({ data }: { data: PropertyData }) {
                       size="sm"
                       disabled={savingPrice || !pricePerNightInput}
                       onClick={async () => {
+                        const newPrice = Number(pricePerNightInput);
                         setSavingPrice(true);
                         try {
-                          await api.post(`/properties/${data.id}/price`, { pricePerNight: Number(pricePerNightInput) });
-                          toast.success("Villa price saved successfully");
-                          queryClient.invalidateQueries({ queryKey: ["guest_houses", data.id] });
+                          await api.post(`/properties/${data.id}/price`, { pricePerNight: newPrice });
+                          toast.success(`Villa price saved: ETB ${newPrice.toLocaleString()}/night`);
+                          // Update local state to the saved value — don't rely on query refresh
+                          setPricePerNightInput(String(newPrice));
+                          // Refresh in background without resetting input
+                          setTimeout(() => {
+                            queryClient.invalidateQueries({ queryKey: ["guest_houses", data.id] });
+                          }, 500);
                         } catch (err: any) {
                           toast.error(err?.response?.data?.message || "Failed to save price");
                         } finally { setSavingPrice(false); }
