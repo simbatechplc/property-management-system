@@ -572,10 +572,24 @@ const DataContainer = ({ data }: Props) => {
                         </div>
                         <div className="text-right shrink-0">
                           {pricePerNight ? (
-                            <div>
-                              <p className="text-xs text-muted-foreground">per night</p>
-                              <FormatedAmount amount={pricePerNight} className="font-bold text-2xl text-primary" />
-                            </div>
+                            (() => {
+                              const discount = (property as any).discountPercent ?? 0;
+                              const discountedPrice = discount > 0 ? Math.round(pricePerNight * (1 - discount / 100)) : pricePerNight;
+                              const hasDiscount = discount > 0;
+                              return (
+                                <div>
+                                  {hasDiscount && (
+                                    <p className="text-xs line-through text-muted-foreground">ETB {pricePerNight.toLocaleString()}</p>
+                                  )}
+                                  <FormatedAmount amount={discountedPrice} className="font-bold text-2xl text-primary" />
+                                  {hasDiscount && (
+                                    <span className="text-xs bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 px-2 py-0.5 rounded-full font-semibold">
+                                      🏷️ {discount}% off
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })()
                           ) : (
                             <p className="text-sm text-muted-foreground">Contact for price</p>
                           )}
@@ -843,7 +857,7 @@ const DataContainer = ({ data }: Props) => {
           <div className="sticky top-24 rounded-2xl border border-border bg-card shadow-lg overflow-hidden">
             {/* Price header */}
             <div className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-5">
-              <p className="text-xs opacity-70 mb-1">{isPrivate ? "Price" + (showPerNight ? " per night (whole property)" : "") : "Avg price" + (showPerNight ? " per night" : "")}</p>
+              <p className="text-xs opacity-70 mb-1">{isPrivate ? ((property as any).type === "VILLA" ? "Villa Price" : "Price" + (showPerNight ? " per night (whole property)" : "")) : "Avg price" + (showPerNight ? " per night" : "")}</p>
               {isPrivate ? (
                 pricePerNight ? (
                   (() => {

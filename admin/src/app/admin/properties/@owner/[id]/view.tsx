@@ -222,14 +222,14 @@ export default function PropertyView({ data }: { data: PropertyData }) {
             {form.type === "VILLA" && (
               <div className="space-y-2 md:col-span-2 p-4 rounded-xl border-2 border-primary/30 bg-primary/5">
                 <Label className="text-primary font-semibold">🏡 Villa Pricing (whole property)</Label>
-                <p className="text-xs text-muted-foreground">Set the rental price for the entire villa. Enter the per-night price and click Save Changes.</p>
+                <p className="text-xs text-muted-foreground">Set the rental price for the entire villa. This is the total price guests pay to rent the villa. Click Save Changes to apply.</p>
                 <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs">Price Per Night (ETB) *</Label>
+                    <Label className="text-xs">Villa Rental Price (ETB) *</Label>
                     <Input
                       type="number"
                       min={0}
-                      placeholder="e.g. 5000"
+                      placeholder="e.g. 20000"
                       value={pricePerNightInput}
                       onChange={e => setPricePerNightInput(e.target.value)}
                     />
@@ -507,14 +507,14 @@ export default function PropertyView({ data }: { data: PropertyData }) {
               {isPrivate && (
                 <div className="p-4 border-2 border-primary/30 bg-primary/5 rounded-xl">
                   <p className="font-semibold mb-1 text-primary">
-                    {(data as any).type === "VILLA" ? "🏡 Villa Price per Night" : "Property Price per Night"}
+                    {(data as any).type === "VILLA" ? "🏡 Villa Rental Price" : "Property Price per Night"}
                   </p>
                   <p className="text-sm text-muted-foreground mb-3">
                     {(data as any).type === "VILLA"
-                      ? "Guests pay this price to rent the entire villa per night."
+                      ? "Guests pay this price to rent the entire villa."
                       : "Guests pay this price to book the entire property per night."}
                     {(data as any).pricePerNight
-                      ? ` Currently: ETB ${Number((data as any).pricePerNight).toLocaleString()}/night`
+                      ? ` Currently: ETB ${Number((data as any).pricePerNight).toLocaleString()}`
                       : " Not set yet."}
                   </p>
                   <div className="flex items-center gap-3 flex-wrap">
@@ -525,7 +525,7 @@ export default function PropertyView({ data }: { data: PropertyData }) {
                         value={pricePerNightInput}
                         onChange={e => setPricePerNightInput(e.target.value)}
                         className="pl-12"
-                        placeholder="e.g. 5000"
+                        placeholder="e.g. 20000"
                       />
                     </div>
                     <Button
@@ -536,16 +536,16 @@ export default function PropertyView({ data }: { data: PropertyData }) {
                         setSavingPrice(true);
                         try {
                           await api.post(`/properties/${data.id}/price`, { pricePerNight: newPrice });
-                          toast.success(`Price saved: ETB ${newPrice.toLocaleString()}/night`);
-                          // Don't invalidate query here — it would reset the input
+                          toast.success(`Price saved: ETB ${newPrice.toLocaleString()}`);
                         } catch (err: any) {
                           toast.error(err?.response?.data?.message || "Failed to save price");
                         } finally { setSavingPrice(false); }
                       }}>
                       {savingPrice ? "Saving..." : "Save Price"}
-                    </Button>                    {(data as any).pricePerNight > 0 && (
+                    </Button>
+                    {(data as any).pricePerNight > 0 && (
                       <span className="text-sm text-emerald-600 font-medium">
-                        ✓ ETB {Number((data as any).pricePerNight).toLocaleString()}/night
+                        ✓ ETB {Number((data as any).pricePerNight).toLocaleString()}
                       </span>
                     )}
                   </div>

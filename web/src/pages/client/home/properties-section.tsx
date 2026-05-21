@@ -58,7 +58,7 @@ const TrendingCard = ({ data }: { data: any }) => {
           )}
           {avgPrice > 0 && (
             <span className="text-xs font-bold text-red-500">
-              ETB {avgPrice.toLocaleString()}{data.type === "VILLA" ? "/night" : ["HOTEL", "APARTMENT"].includes(data.type) ? "/night" : ""}
+              ETB {avgPrice.toLocaleString()}{data.type === "VILLA" ? "" : ["HOTEL", "APARTMENT"].includes(data.type) ? "/night" : ""}
             </span>
           )}
         </div>
