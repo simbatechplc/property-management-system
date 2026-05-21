@@ -395,7 +395,8 @@ export default {
   }),
 
   getTrendingProperties: tryCatch(async (req, res) => {
-    // Returns ALL properties (no status/visibility filter) for trending display
+    // Returns approved/visible properties for trending display
+    // Excludes non-VILLA properties with zero rooms
     const properties = await prisma.property.findMany({
       include: {
         location: true,
@@ -417,8 +418,15 @@ export default {
         },
       },
       orderBy: { createdAt: "asc" },
-      take: 10,
-      where: {},
+      take: 20,
+      where: {
+        status: "APPROVED",
+        visibility: true,
+        OR: [
+          { type: "VILLA" },
+          { rooms: { some: {} } },
+        ],
+      },
     });
 
     res.json({ data: properties, success: true });
