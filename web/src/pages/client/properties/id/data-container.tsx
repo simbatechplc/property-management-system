@@ -81,6 +81,7 @@ const DataContainer = ({ data }: Props) => {
 
   // Detect private property (Villa / Guest House — booked as a whole)
   const isPrivate = ["VILLA", "GUEST_HOUSE"].includes(property.type) || (property as any).accessType === "PRIVATE";
+  const isVilla = (property as any).type === "VILLA";
   const showPerNight = ["HOTEL", "APARTMENT"].includes(property.type);
   const pricePerNight = (property as any).pricePerNight as number | null | undefined;
   // For booking dialog we need a "room" object — use first room or a synthetic one
@@ -98,7 +99,10 @@ const DataContainer = ({ data }: Props) => {
   // Collect all booked ranges from the first room (for private property date blocking)
   const propertyBookedRanges = (firstRoom as any)?.bookings || [];
 
-  const handleBookProperty = () => {
+  const isVilla = (property as any).type === "VILLA";
+  const NAV_TABS_FILTERED = isVilla
+    ? NAV_TABS.filter(t => t !== "Rooms")
+    : NAV_TABS;
     if (!isAuthenticated) {
       navigate(`/auth/signin?callBackUrl=/properties/${property.id}`, { state: "booking" });
     } else {
@@ -458,7 +462,7 @@ const DataContainer = ({ data }: Props) => {
         stickyNav ? "fixed top-16 left-0 right-0 shadow-md" : "relative mt-4"
       )}>
         <div className="max-w-7xl mx-auto px-4 flex overflow-x-auto">
-          {NAV_TABS.map((tab) => (
+          {NAV_TABS.filter(tab => !(isVilla && tab === "Rooms")).map((tab) => (
             <button key={tab} onClick={() => handleTabClick(tab)}
               className={cn(
                 "px-5 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors shrink-0",
@@ -540,84 +544,158 @@ const DataContainer = ({ data }: Props) => {
             )}
           </section>
 
-          {/* Rooms */}
+          {/* Rooms / Villa Booking Section */}
           <section id="rooms" className="mb-10">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-bold">{isPrivate ? "Property Details" : "Select your room"}</h2>
-              <span className="text-sm text-muted-foreground">{property.rooms?.length ?? 0} {isPrivate ? "spaces" : "room types"}</span>
-            </div>
-            <div className="flex flex-col gap-4">
-              {property?.rooms?.length > 0 ? property.rooms.map((r: any) => {
-                const bedrooms = r.features?.filter((f: any) => f.category?.toLowerCase() === "bedroom").length ?? 0;
-                const bathrooms = r.features?.filter((f: any) => f.category?.toLowerCase() === "bathroom").length ?? 0;
-                return (
-                  <div key={r.id} className="border border-border rounded-2xl overflow-hidden flex flex-col sm:flex-row hover:shadow-lg hover:border-primary/30 transition-all duration-200 bg-card">
-                    <div className="sm:w-56 w-full shrink-0 bg-muted relative overflow-hidden">
-                      {r.images?.[0]?.url ? (
-                        <img src={r.images[0].url} alt={r.name} className="w-full h-48 sm:h-full object-cover hover:scale-105 transition-transform duration-500" />
-                      ) : (
-                        <div className="w-full h-48 sm:h-full flex items-center justify-center">
-                          <ImageIcon className="w-10 h-10 text-muted-foreground opacity-30" />
+            {(property as any).type === "VILLA" ? (
+              /* Villa — show as whole property booking, not room-by-room */
+              <div>
+                <h2 className="text-xl font-bold mb-5">Book This Villa</h2>
+                <div className="border-2 border-primary/20 rounded-2xl overflow-hidden bg-card hover:shadow-lg transition-all">
+                  <div className="flex flex-col sm:flex-row">
+                    {allImages[0]?.url && (
+                      <div className="sm:w-64 w-full shrink-0 bg-muted overflow-hidden">
+                        <img src={allImages[0].url} alt={property.name} className="w-full h-48 sm:h-full object-cover" />
+                      </div>
+                    )}
+                    <div className="flex-1 p-6">
+                      <div className="flex items-start justify-between gap-4 mb-4">
+                        <div>
+                          <h3 className="font-bold text-xl">{property.name}</h3>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <Badge variant="secondary" className="text-xs">VILLA</Badge>
+                            {(property as any).furnishingStatus && (
+                              <Badge variant="outline" className="text-xs capitalize">
+                                {((property as any).furnishingStatus as string).replace(/_/g, " ").toLowerCase()}
+                              </Badge>
+                            )}
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />{property.location?.city}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          {pricePerNight ? (
+                            <div>
+                              <p className="text-xs text-muted-foreground">per night</p>
+                              <FormatedAmount amount={pricePerNight} className="font-bold text-2xl text-primary" />
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Contact for price</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {property.about?.description && (
+                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{property.about.description}</p>
+                      )}
+
+                      {/* Facilities */}
+                      {property.facilities?.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-4">
+                          {property.facilities.slice(0, 5).map((f: any) => (
+                            <span key={f.id} className="text-xs bg-muted px-2 py-0.5 rounded-full border border-border">
+                              {f.name}
+                            </span>
+                          ))}
+                          {property.facilities.length > 5 && (
+                            <span className="text-xs text-muted-foreground">+{property.facilities.length - 5} more</span>
+                          )}
                         </div>
                       )}
-                      <div className="absolute top-2 left-2">
-                        <Badge variant="secondary" className="text-xs">{r.type}</Badge>
-                      </div>
-                    </div>
-                    <div className="flex-1 p-5 flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-start justify-between gap-2 mb-3">
-                          <div>
-                            <h3 className="font-bold text-base text-primary hover:underline cursor-pointer" onClick={() => navigate(`/rooms/${r.id}`)}>
-                              {r.name}
-                            </h3>
-                            <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-                              {bedrooms > 0 && <span className="flex items-center gap-1"><BedDouble className="w-3.5 h-3.5" />{bedrooms} bed</span>}
-                              {bathrooms > 0 && <span className="flex items-center gap-1"><Bath className="w-3.5 h-3.5" />{bathrooms} bath</span>}
-                              <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />Max {r.maxOccupancy}</span>
-                            </div>
-                          </div>
-                          <div className="text-right shrink-0">
-                            {showPerNight && <p className="text-xs text-muted-foreground">per night</p>}
-                            <FormatedAmount amount={r.price} className="font-bold text-xl text-red-500" />
-                          </div>
-                        </div>
-                        {r.services?.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mb-3">
-                            {r.services.slice(0, 4).map((s: any) => (
-                              <span key={s.id} className="text-xs bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 px-2 py-0.5 rounded-full border border-green-100 dark:border-green-800">
-                                {s.name}{s.price ? ` (+ETB ${s.price})` : " (Free)"}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between pt-3 border-t border-border">
-                        <div className="flex flex-col gap-0.5">
-                          <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full w-fit", r.availability ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400")}>
-                            {r.availability ? "Available" : "Unavailable"}
-                          </span>
-                          {!r.availability && r.bookings?.length > 0 && (() => {
-                            const today = new Date(); today.setHours(0,0,0,0);
-                            const active = r.bookings.filter((b: any) => b.checkIn && b.checkOut && new Date(b.checkOut) >= today);
-                            const latest = active.reduce((l: Date | null, b: any) => { const co = new Date(b.checkOut); return !l || co > l ? co : l; }, null);
-                            return latest ? <span className="text-xs text-muted-foreground">Until {latest.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span> : null;
-                          })()}
-                        </div>
-                        <Button size="sm" className="rounded-full px-5" onClick={() => navigate(`/rooms/${r.id}`)}>
-                          {isPrivate ? "View Details" : "Book this room"}
+
+                      <div className="flex items-center justify-between pt-4 border-t border-border">
+                        <span className="text-xs text-green-600 font-medium bg-green-50 dark:bg-green-900/20 px-2.5 py-1 rounded-full">
+                          🏡 Entire villa — exclusive use
+                        </span>
+                        <Button className="rounded-full px-6" onClick={handleBookProperty}>
+                          Book This Villa
                         </Button>
                       </div>
                     </div>
                   </div>
-                );
-              }) : (
-                <div className="border border-border rounded-2xl p-10 text-center text-muted-foreground bg-muted/20">
-                  <BedDouble className="w-10 h-10 mx-auto mb-2 opacity-20" />
-                  <p className="text-sm">No rooms available at this time.</p>
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              /* Non-villa — show rooms list */
+              <div>
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-xl font-bold">{isPrivate ? "Property Details" : "Select your room"}</h2>
+                  <span className="text-sm text-muted-foreground">{property.rooms?.length ?? 0} {isPrivate ? "spaces" : "room types"}</span>
+                </div>
+                <div className="flex flex-col gap-4">
+                  {property?.rooms?.length > 0 ? property.rooms.map((r: any) => {
+                    const bedrooms = r.features?.filter((f: any) => f.category?.toLowerCase() === "bedroom").length ?? 0;
+                    const bathrooms = r.features?.filter((f: any) => f.category?.toLowerCase() === "bathroom").length ?? 0;
+                    return (
+                      <div key={r.id} className="border border-border rounded-2xl overflow-hidden flex flex-col sm:flex-row hover:shadow-lg hover:border-primary/30 transition-all duration-200 bg-card">
+                        <div className="sm:w-56 w-full shrink-0 bg-muted relative overflow-hidden">
+                          {r.images?.[0]?.url ? (
+                            <img src={r.images[0].url} alt={r.name} className="w-full h-48 sm:h-full object-cover hover:scale-105 transition-transform duration-500" />
+                          ) : (
+                            <div className="w-full h-48 sm:h-full flex items-center justify-center">
+                              <ImageIcon className="w-10 h-10 text-muted-foreground opacity-30" />
+                            </div>
+                          )}
+                          <div className="absolute top-2 left-2">
+                            <Badge variant="secondary" className="text-xs">{r.type}</Badge>
+                          </div>
+                        </div>
+                        <div className="flex-1 p-5 flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-start justify-between gap-2 mb-3">
+                              <div>
+                                <h3 className="font-bold text-base text-primary hover:underline cursor-pointer" onClick={() => navigate(`/rooms/${r.id}`)}>
+                                  {r.name}
+                                </h3>
+                                <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                                  {bedrooms > 0 && <span className="flex items-center gap-1"><BedDouble className="w-3.5 h-3.5" />{bedrooms} bed</span>}
+                                  {bathrooms > 0 && <span className="flex items-center gap-1"><Bath className="w-3.5 h-3.5" />{bathrooms} bath</span>}
+                                  <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />Max {r.maxOccupancy}</span>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                {showPerNight && <p className="text-xs text-muted-foreground">per night</p>}
+                                <FormatedAmount amount={r.price} className="font-bold text-xl text-red-500" />
+                              </div>
+                            </div>
+                            {r.services?.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mb-3">
+                                {r.services.slice(0, 4).map((s: any) => (
+                                  <span key={s.id} className="text-xs bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 px-2 py-0.5 rounded-full border border-green-100 dark:border-green-800">
+                                    {s.name}{s.price ? ` (+ETB ${s.price})` : " (Free)"}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between pt-3 border-t border-border">
+                            <div className="flex flex-col gap-0.5">
+                              <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full w-fit", r.availability ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400")}>
+                                {r.availability ? "Available" : "Unavailable"}
+                              </span>
+                              {!r.availability && r.bookings?.length > 0 && (() => {
+                                const today = new Date(); today.setHours(0,0,0,0);
+                                const active = r.bookings.filter((b: any) => b.checkIn && b.checkOut && new Date(b.checkOut) >= today);
+                                const latest = active.reduce((l: Date | null, b: any) => { const co = new Date(b.checkOut); return !l || co > l ? co : l; }, null);
+                                return latest ? <span className="text-xs text-muted-foreground">Until {latest.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span> : null;
+                              })()}
+                            </div>
+                            <Button size="sm" className="rounded-full px-5" onClick={() => navigate(`/rooms/${r.id}`)}>
+                              {isPrivate ? "View Details" : "Book this room"}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }) : (
+                    <div className="border border-border rounded-2xl p-10 text-center text-muted-foreground bg-muted/20">
+                      <BedDouble className="w-10 h-10 mx-auto mb-2 opacity-20" />
+                      <p className="text-sm">No rooms available at this time.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Trip Recommendations */}

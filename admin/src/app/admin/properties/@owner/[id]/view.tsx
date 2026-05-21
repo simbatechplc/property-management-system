@@ -204,7 +204,37 @@ export default function PropertyView({ data }: { data: PropertyData }) {
                 </select>
               </div>
             )}
-            <div className="space-y-1 md:col-span-2"><Label>Description</Label><Textarea rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
+            {/* Villa price — per month and per year */}
+            {form.type === "VILLA" && (
+              <div className="space-y-1 md:col-span-2">
+                <Label className="text-primary font-semibold">🏡 Villa Pricing (whole property)</Label>
+                <p className="text-xs text-muted-foreground mb-2">Set the rental price for the entire villa. You can set per night, per month, or per year.</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Per Night (ETB)</Label>
+                    <Input type="number" min={0} placeholder="e.g. 5000"
+                      defaultValue={(data as any).pricePerNight || ""}
+                      onChange={e => (form as any)._pricePerNight = e.target.value}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Per Month (ETB)</Label>
+                    <Input type="number" min={0} placeholder="e.g. 50000"
+                      defaultValue={(data as any).pricePerMonth || ""}
+                      onChange={e => (form as any)._pricePerMonth = e.target.value}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Per Year (ETB)</Label>
+                    <Input type="number" min={0} placeholder="e.g. 500000"
+                      defaultValue={(data as any).pricePerYear || ""}
+                      onChange={e => (form as any)._pricePerYear = e.target.value}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Note: Save prices from the Discounts tab after editing.</p>
+              </div>
+            )}            <div className="space-y-1 md:col-span-2"><Label>Description</Label><Textarea rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
             <div className="space-y-1"><Label>Phone</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
             <div className="space-y-1"><Label>Email</Label><Input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
             <div className="space-y-1"><Label>City</Label><Input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} /></div>
@@ -276,7 +306,8 @@ export default function PropertyView({ data }: { data: PropertyData }) {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="staff">Staff</TabsTrigger>
           <TabsTrigger value="brokers">Brokers</TabsTrigger>
-          <TabsTrigger value="rooms">Rooms</TabsTrigger>
+          {/* Hide Rooms tab for Villa — villas are booked as whole units */}
+          {(data as any).type !== "VILLA" && <TabsTrigger value="rooms">Rooms</TabsTrigger>}
           <TabsTrigger value="bookings">Bookings</TabsTrigger>
           <TabsTrigger value="facilities">Facilities</TabsTrigger>
           <TabsTrigger value="discounts">Discounts</TabsTrigger>
