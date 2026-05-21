@@ -562,7 +562,7 @@ export default function PropertyView({ data }: { data: PropertyData }) {
                     ? "Apply a discount percentage to the villa price"
                     : "Applies to the average price shown on the client page"}
                 </p>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <div className="relative w-32">
                     <Input
                       type="number" min={0} max={100}
@@ -575,9 +575,18 @@ export default function PropertyView({ data }: { data: PropertyData }) {
                   <Button size="sm" onClick={() => setPropertyDiscount.mutate({ id: data.id, discountPercent: Number(propertyDiscountInput) })} disabled={setPropertyDiscount.isPending}>
                     {setPropertyDiscount.isPending ? "Saving..." : "Save"}
                   </Button>
-                  {(data as any).discountPercent > 0 && (
-                    <span className="text-sm text-emerald-600 font-medium">Active: {(data as any).discountPercent}% off</span>
-                  )}
+                </div>
+                {/* Live discount preview */}
+                {Number(propertyDiscountInput) > 0 && (data as any).pricePerNight > 0 && (
+                  <div className="mt-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                    <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-1">Price after {propertyDiscountInput}% discount:</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm line-through text-muted-foreground">ETB {Number((data as any).pricePerNight).toLocaleString()}</span>
+                      <span className="text-base font-bold text-emerald-600">ETB {Math.round(Number((data as any).pricePerNight) * (1 - Number(propertyDiscountInput) / 100)).toLocaleString()}</span>
+                      <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">-{propertyDiscountInput}%</span>
+                    </div>
+                  </div>
+                )}
                 </div>
               </div>
 

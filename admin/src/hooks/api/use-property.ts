@@ -169,11 +169,8 @@ export const useSetPropertyDiscountMutation = () => {
     },
     onSuccess: ({ message }, { id }) => {
       toast.success(message || "Discount updated");
-      // Delay invalidation so price input doesn't reset immediately
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["guest_houses", id] });
-        queryClient.invalidateQueries({ queryKey: ["properties"] });
-      }, 1000);
+      queryClient.invalidateQueries({ queryKey: ["guest_houses", id] });
+      queryClient.invalidateQueries({ queryKey: ["properties"] });
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || "Failed to update discount");
