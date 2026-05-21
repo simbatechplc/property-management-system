@@ -81,15 +81,7 @@ export default function PropertyView({ data }: { data: PropertyData }) {
   const [roomDiscountInputs, setRoomDiscountInputs] = useState<Record<string, string>>({});
   const [pricePerNightInput, setPricePerNightInput] = useState(String((data as any).pricePerNight ?? ""));
   const [savingPrice, setSavingPrice] = useState(false);
-  const isPrivate = ["VILLA", "GUEST_HOUSE"].includes((data as any).type || "");
-
-  // Sync price input when data refreshes from server (after save)
-  // Use a ref to track if user is currently editing to avoid overwriting their input
-  useEffect(() => {
-    if (!savingPrice) {
-      setPricePerNightInput(String((data as any).pricePerNight ?? ""));
-    }
-  }, [(data as any).pricePerNight]);  const [policies, setPolicies] = useState<Array<{ key: string; value: string }>>(
+  const isPrivate = ["VILLA", "GUEST_HOUSE"].includes((data as any).type || "");  const [policies, setPolicies] = useState<Array<{ key: string; value: string }>>(
     (() => {
       const p = (data as any).policies;
       if (!p) return [
@@ -133,7 +125,7 @@ export default function PropertyView({ data }: { data: PropertyData }) {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     updateMutation.mutate({
       id: data.id,
       data: {
@@ -145,7 +137,22 @@ export default function PropertyView({ data }: { data: PropertyData }) {
         contact: { phone: form.phone, email: form.email },
         location: { city: form.city, subcity: form.subcity, country: form.country, nearby: form.nearby, continent: data.location?.continent || "", latitude: form.latitude, longitude: form.longitude },
       },
-    }, { onSuccess: () => setEditOpen(false) });
+    }, {
+      onSuccess: async () => {
+        // Save villa price if set — do this BEFORE closing dialog
+        if (form.type === "VILLA" && pricePerNightInput) {
+          try {
+            await api.post(`/properties/${data.id}/price`, { pricePerNight: Number(pricePerNightInput) });
+            toast.success(`Villa price saved: ETB ${Number(pricePerNightInput).toLocaleString()}/night`);
+          } catch (err: any) {
+            toast.error(err?.response?.data?.message || "Failed to save villa price");
+          }
+        }
+        setEditOpen(false);
+        // Refresh data after dialog closes — won't reset input since dialog is closed
+        queryClient.invalidateQueries({ queryKey: ["guest_houses", data.id] });
+      }
+    });
   };
 
   const handleVoid = () => {
@@ -213,33 +220,22 @@ export default function PropertyView({ data }: { data: PropertyData }) {
             )}
             {/* Villa price — per month and per year */}
             {form.type === "VILLA" && (
-              <div className="space-y-1 md:col-span-2">
+              <div className="space-y-2 md:col-span-2 p-4 rounded-xl border-2 border-primary/30 bg-primary/5">
                 <Label className="text-primary font-semibold">🏡 Villa Pricing (whole property)</Label>
-                <p className="text-xs text-muted-foreground mb-2">Set the rental price for the entire villa. You can set per night, per month, or per year.</p>
-                <div className="grid grid-cols-3 gap-3">
+                <p className="text-xs text-muted-foreground">Set the rental price for the entire villa. Enter the per-night price and click Save Changes.</p>
+                <div className="grid grid-cols-1 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs">Per Night (ETB)</Label>
-                    <Input type="number" min={0} placeholder="e.g. 5000"
-                      defaultValue={(data as any).pricePerNight || ""}
-                      onChange={e => (form as any)._pricePerNight = e.target.value}
+                    <Label className="text-xs">Price Per Night (ETB) *</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="e.g. 5000"
+                      value={pricePerNightInput}
+                      onChange={e => setPricePerNightInput(e.target.value)}
                     />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Per Month (ETB)</Label>
-                    <Input type="number" min={0} placeholder="e.g. 50000"
-                      defaultValue={(data as any).pricePerMonth || ""}
-                      onChange={e => (form as any)._pricePerMonth = e.target.value}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Per Year (ETB)</Label>
-                    <Input type="number" min={0} placeholder="e.g. 500000"
-                      defaultValue={(data as any).pricePerYear || ""}
-                      onChange={e => (form as any)._pricePerYear = e.target.value}
-                    />
+                    <p className="text-xs text-muted-foreground">This price will be shown to guests on the property page.</p>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Note: Save prices from the Discounts tab after editing.</p>
               </div>
             )}            <div className="space-y-1 md:col-span-2"><Label>Description</Label><Textarea rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
             <div className="space-y-1"><Label>Phone</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
@@ -540,20 +536,14 @@ export default function PropertyView({ data }: { data: PropertyData }) {
                         setSavingPrice(true);
                         try {
                           await api.post(`/properties/${data.id}/price`, { pricePerNight: newPrice });
-                          toast.success(`Villa price saved: ETB ${newPrice.toLocaleString()}/night`);
-                          // Update local state to the saved value — don't rely on query refresh
-                          setPricePerNightInput(String(newPrice));
-                          // Refresh in background without resetting input
-                          setTimeout(() => {
-                            queryClient.invalidateQueries({ queryKey: ["guest_houses", data.id] });
-                          }, 500);
+                          toast.success(`Price saved: ETB ${newPrice.toLocaleString()}/night`);
+                          // Don't invalidate query here — it would reset the input
                         } catch (err: any) {
                           toast.error(err?.response?.data?.message || "Failed to save price");
                         } finally { setSavingPrice(false); }
                       }}>
                       {savingPrice ? "Saving..." : "Save Price"}
-                    </Button>
-                    {(data as any).pricePerNight > 0 && (
+                    </Button>                    {(data as any).pricePerNight > 0 && (
                       <span className="text-sm text-emerald-600 font-medium">
                         ✓ ETB {Number((data as any).pricePerNight).toLocaleString()}/night
                       </span>

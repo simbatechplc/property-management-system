@@ -17,7 +17,10 @@ const TrendingCard = ({ data }: { data: any }) => {
     ? data.reviews.reduce((s: number, r: any) => s + (r.rating ?? 0), 0) / data.reviews.length
     : 0;
   const prices = (data.rooms || []).map((r: any) => r.price).filter((p: number) => p > 0);
-  const avgPrice = prices.length ? Math.round(prices.reduce((a: number, b: number) => a + b, 0) / prices.length) : (data.pricePerNight || 0);
+  // For villas, use pricePerNight directly; for others use avg room price
+  const avgPrice = data.type === "VILLA"
+    ? (data.pricePerNight || 0)
+    : (prices.length ? Math.round(prices.reduce((a: number, b: number) => a + b, 0) / prices.length) : (data.pricePerNight || 0));
 
   return (
     <div
@@ -55,7 +58,7 @@ const TrendingCard = ({ data }: { data: any }) => {
           )}
           {avgPrice > 0 && (
             <span className="text-xs font-bold text-red-500">
-              Avg ETB {avgPrice.toLocaleString()}{["HOTEL", "APARTMENT"].includes(data.type) ? "/night" : ""}
+              ETB {avgPrice.toLocaleString()}{data.type === "VILLA" ? "/night" : ["HOTEL", "APARTMENT"].includes(data.type) ? "/night" : ""}
             </span>
           )}
         </div>
