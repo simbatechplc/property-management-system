@@ -587,7 +587,6 @@ export default function PropertyView({ data }: { data: PropertyData }) {
                     </div>
                   </div>
                 )}
-                </div>
               </div>
 
               {/* Per-room discounts — hidden for Villa */}
