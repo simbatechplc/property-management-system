@@ -54,6 +54,7 @@ export default function PropertyView({ data }: { data: PropertyData }) {
     name: data.name,
     address: data.address,
     type: (data as any).type || "HOTEL",
+    furnishingStatus: (data as any).furnishingStatus || "",
     description: data.about?.description || "",
     phone: data.contact?.phone || "",
     email: data.contact?.email || "",
@@ -132,6 +133,7 @@ export default function PropertyView({ data }: { data: PropertyData }) {
         name: form.name,
         address: form.address,
         type: form.type as any,
+        ...(form.furnishingStatus ? { furnishingStatus: form.furnishingStatus as any } : {}),
         about: { description: form.description },
         contact: { phone: form.phone, email: form.email },
         location: { city: form.city, subcity: form.subcity, country: form.country, nearby: form.nearby, continent: data.location?.continent || "", latitude: form.latitude, longitude: form.longitude },
@@ -189,6 +191,19 @@ export default function PropertyView({ data }: { data: PropertyData }) {
                 ))}
               </select>
             </div>
+            {/* Furnishing status — only for APARTMENT and VILLA */}
+            {(form.type === "APARTMENT" || form.type === "VILLA") && (
+              <div className="space-y-1">
+                <Label>Furnishing Status</Label>
+                <select value={form.furnishingStatus} onChange={e => setForm(f => ({ ...f, furnishingStatus: e.target.value }))}
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm">
+                  <option value="">Not specified</option>
+                  <option value="FURNISHED">Furnished</option>
+                  <option value="UNFURNISHED">Unfurnished</option>
+                  <option value="PARTIALLY_FURNISHED">Partially Furnished</option>
+                </select>
+              </div>
+            )}
             <div className="space-y-1 md:col-span-2"><Label>Description</Label><Textarea rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
             <div className="space-y-1"><Label>Phone</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
             <div className="space-y-1"><Label>Email</Label><Input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>

@@ -307,6 +307,7 @@ const DataContainer = ({ data }: Props) => {
                               {r.name}
                             </h3>
                             <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                              <span className="bg-secondary text-secondary-foreground px-1.5 py-0.5 rounded text-[10px] font-medium uppercase">{r.type}</span>
                               {bedrooms > 0 && <span className="flex items-center gap-1"><BedDouble className="w-3 h-3" />{bedrooms} bed</span>}
                               {bathrooms > 0 && <span className="flex items-center gap-1"><Bath className="w-3 h-3" />{bathrooms} bath</span>}
                               <span className="flex items-center gap-1"><Users className="w-3 h-3" />Max {r.maxOccupancy}</span>
@@ -516,6 +517,11 @@ const DataContainer = ({ data }: Props) => {
                 { icon: <Clock className="w-4 h-4 text-primary" />, label: "Check-out", value: "Until 12:00" },
                 { icon: <Shield className="w-4 h-4 text-primary" />, label: "Cancellation", value: "Free" },
                 { icon: <Coffee className="w-4 h-4 text-primary" />, label: "Rooms", value: `${property.rooms?.length ?? 0} available` },
+                ...((((property as any).type === "APARTMENT" || (property as any).type === "VILLA") && (property as any).furnishingStatus) ? [{
+                  icon: <span className="text-primary text-sm">🛋️</span>,
+                  label: "Furnishing",
+                  value: ((property as any).furnishingStatus as string).replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase()),
+                }] : []),
               ].map(({ icon, label, value }) => (
                 <div key={label} className="flex items-center gap-2.5 p-3 rounded-xl bg-muted/40 border border-border">
                   <div className="shrink-0">{icon}</div>
