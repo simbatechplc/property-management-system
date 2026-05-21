@@ -490,18 +490,31 @@ export default function PropertyView({ data }: { data: PropertyData }) {
         {/* Discounts */}
         <TabsContent value="discounts">
           <Card>
-            <CardHeader><CardTitle>Discounts</CardTitle><CardDescription>Set discount percentages for the property or individual rooms</CardDescription></CardHeader>
+            <CardHeader>
+              <CardTitle>Pricing & Discounts</CardTitle>
+              <CardDescription>
+                {(data as any).type === "VILLA"
+                  ? "Set the villa rental price and discount"
+                  : "Set discount percentages for the property or individual rooms"}
+              </CardDescription>
+            </CardHeader>
             <CardContent className="space-y-6">
 
-              {/* Property price — only for PRIVATE (Villa / Guest House) */}
+              {/* Property price — for VILLA and GUEST_HOUSE */}
               {isPrivate && (
                 <div className="p-4 border-2 border-primary/30 bg-primary/5 rounded-xl">
-                  <p className="font-semibold mb-1 text-primary">Property Price per Night</p>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    This is the price guests pay to book the entire {(data as any).type?.replace("_", " ")} per night.
-                    {(data as any).pricePerNight ? ` Currently: ETB ${Number((data as any).pricePerNight).toLocaleString()}/night` : " Not set yet."}
+                  <p className="font-semibold mb-1 text-primary">
+                    {(data as any).type === "VILLA" ? "🏡 Villa Price per Night" : "Property Price per Night"}
                   </p>
-                  <div className="flex items-center gap-3">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {(data as any).type === "VILLA"
+                      ? "Guests pay this price to rent the entire villa per night."
+                      : "Guests pay this price to book the entire property per night."}
+                    {(data as any).pricePerNight
+                      ? ` Currently: ETB ${Number((data as any).pricePerNight).toLocaleString()}/night`
+                      : " Not set yet."}
+                  </p>
+                  <div className="flex items-center gap-3 flex-wrap">
                     <div className="relative w-44">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">ETB</span>
                       <Input
@@ -512,20 +525,25 @@ export default function PropertyView({ data }: { data: PropertyData }) {
                         placeholder="e.g. 5000"
                       />
                     </div>
-                    <Button size="sm" disabled={savingPrice || !pricePerNightInput}
+                    <Button
+                      size="sm"
+                      disabled={savingPrice || !pricePerNightInput}
                       onClick={async () => {
                         setSavingPrice(true);
                         try {
                           await api.post(`/properties/${data.id}/price`, { pricePerNight: Number(pricePerNightInput) });
-                          toast.success("Property price saved");
+                          toast.success("Villa price saved successfully");
                           queryClient.invalidateQueries({ queryKey: ["guest_houses", data.id] });
-                        } catch { toast.error("Failed to save price"); }
-                        finally { setSavingPrice(false); }
+                        } catch (err: any) {
+                          toast.error(err?.response?.data?.message || "Failed to save price");
+                        } finally { setSavingPrice(false); }
                       }}>
                       {savingPrice ? "Saving..." : "Save Price"}
                     </Button>
                     {(data as any).pricePerNight > 0 && (
-                      <span className="text-sm text-emerald-600 font-medium">ETB {Number((data as any).pricePerNight).toLocaleString()}/night</span>
+                      <span className="text-sm text-emerald-600 font-medium">
+                        ✓ ETB {Number((data as any).pricePerNight).toLocaleString()}/night
+                      </span>
                     )}
                   </div>
                 </div>
@@ -533,8 +551,14 @@ export default function PropertyView({ data }: { data: PropertyData }) {
 
               {/* Property-wide discount */}
               <div className="p-4 border border-border rounded-xl">
-                <p className="font-semibold mb-1">Property-wide discount</p>
-                <p className="text-sm text-muted-foreground mb-3">Applies to the average price shown on the client page</p>
+                <p className="font-semibold mb-1">
+                  {(data as any).type === "VILLA" ? "Villa Discount" : "Property-wide discount"}
+                </p>
+                <p className="text-sm text-muted-foreground mb-3">
+                  {(data as any).type === "VILLA"
+                    ? "Apply a discount percentage to the villa price"
+                    : "Applies to the average price shown on the client page"}
+                </p>
                 <div className="flex items-center gap-3">
                   <div className="relative w-32">
                     <Input
@@ -554,38 +578,40 @@ export default function PropertyView({ data }: { data: PropertyData }) {
                 </div>
               </div>
 
-              {/* Per-room discounts */}
-              <div>
-                <p className="font-semibold mb-3">Per-room discounts</p>
-                <div className="space-y-3">
-                  {data.rooms.map((room: any) => (
-                    <div key={room.id} className="flex items-center justify-between p-3 border border-border rounded-xl">
-                      <div>
-                        <p className="font-medium text-sm">{room.name}</p>
-                        <p className="text-xs text-muted-foreground">ETB {room.price?.toLocaleString()}/night</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="relative w-24">
-                          <Input
-                            type="number" min={0} max={100}
-                            value={roomDiscountInputs[room.id] ?? String(room.discountPercent ?? 0)}
-                            onChange={e => setRoomDiscountInputs(prev => ({ ...prev, [room.id]: e.target.value }))}
-                            className="pr-7 text-sm h-8"
-                          />
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
+              {/* Per-room discounts — hidden for Villa */}
+              {(data as any).type !== "VILLA" && (
+                <div>
+                  <p className="font-semibold mb-3">Per-room discounts</p>
+                  <div className="space-y-3">
+                    {data.rooms.map((room: any) => (
+                      <div key={room.id} className="flex items-center justify-between p-3 border border-border rounded-xl">
+                        <div>
+                          <p className="font-medium text-sm">{room.name}</p>
+                          <p className="text-xs text-muted-foreground">ETB {room.price?.toLocaleString()}/night</p>
                         </div>
-                        <Button size="sm" className="h-8 text-xs" onClick={() => setRoomDiscount.mutate({ roomId: room.id, discountPercent: Number(roomDiscountInputs[room.id] ?? room.discountPercent ?? 0), propertyId: data.id })} disabled={setRoomDiscount.isPending}>
-                          Save
-                        </Button>
-                        {(room.discountPercent ?? 0) > 0 && (
-                          <span className="text-xs text-emerald-600">{room.discountPercent}% off</span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <div className="relative w-24">
+                            <Input
+                              type="number" min={0} max={100}
+                              value={roomDiscountInputs[room.id] ?? String(room.discountPercent ?? 0)}
+                              onChange={e => setRoomDiscountInputs(prev => ({ ...prev, [room.id]: e.target.value }))}
+                              className="pr-7 text-sm h-8"
+                            />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
+                          </div>
+                          <Button size="sm" className="h-8 text-xs" onClick={() => setRoomDiscount.mutate({ roomId: room.id, discountPercent: Number(roomDiscountInputs[room.id] ?? room.discountPercent ?? 0), propertyId: data.id })} disabled={setRoomDiscount.isPending}>
+                            Save
+                          </Button>
+                          {(room.discountPercent ?? 0) > 0 && (
+                            <span className="text-xs text-emerald-600">{room.discountPercent}% off</span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                  {data.rooms.length === 0 && <p className="text-sm text-muted-foreground">No rooms added yet.</p>}
+                    ))}
+                    {data.rooms.length === 0 && <p className="text-sm text-muted-foreground">No rooms added yet.</p>}
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
