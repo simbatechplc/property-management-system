@@ -99,10 +99,7 @@ const DataContainer = ({ data }: Props) => {
   // Collect all booked ranges from the first room (for private property date blocking)
   const propertyBookedRanges = (firstRoom as any)?.bookings || [];
 
-  const isVilla = (property as any).type === "VILLA";
-  const NAV_TABS_FILTERED = isVilla
-    ? NAV_TABS.filter(t => t !== "Rooms")
-    : NAV_TABS;
+  const handleBookProperty = () => {
     if (!isAuthenticated) {
       navigate(`/auth/signin?callBackUrl=/properties/${property.id}`, { state: "booking" });
     } else {
