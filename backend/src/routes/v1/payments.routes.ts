@@ -44,7 +44,7 @@ router.post(
   "/submit",
   authGuard({ accessedBy: ["GUEST", "ADMIN", "OWNER", "BROKER", "STAFF"] }),
   tryCatch(async (req, res) => {
-    const { bookingId, referenceNumber, amountPaid, fullName, screenshotUrl } = req.body;
+    const { bookingId, referenceNumber, amountPaid, fullName, screenshotUrl, paymentMethod } = req.body;
     const missing = [];
     if (!bookingId) missing.push("bookingId");
     if (!referenceNumber) missing.push("referenceNumber");
@@ -62,7 +62,7 @@ router.post(
     const existing = await (prisma as any).paymentSubmission.findUnique({ where: { bookingId } });
     if (existing) return res.status(409).json({ message: "A payment submission already exists for this booking" });
     const submission = await (prisma as any).paymentSubmission.create({
-      data: { bookingId, referenceNumber, amountPaid: Number(amountPaid), fullName, screenshotUrl, status: "PENDING" },
+      data: { bookingId, referenceNumber, amountPaid: Number(amountPaid), fullName, screenshotUrl, paymentMethod: paymentMethod || null, status: "PENDING" },
     });
     res.status(201).json({ success: true, message: "Payment submission created", data: submission });
   })

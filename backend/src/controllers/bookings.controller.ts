@@ -795,6 +795,7 @@ export default {
             amount: true,
             transactionRef: true,
             phoneNumber: true,
+            createdAt: true,
           },
         },
         paymentSubmission: true,

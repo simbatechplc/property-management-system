@@ -46,6 +46,7 @@ model PaymentSubmission {
   amountPaid      Float
   fullName        String
   screenshotUrl   String
+  paymentMethod   String?
   status          PaymentSubmissionStatus @default(PENDING)
   reviewedBy      String?
   reviewedAt      DateTime?

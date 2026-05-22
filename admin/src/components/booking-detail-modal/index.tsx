@@ -492,7 +492,8 @@ export function BookingDetailModal({
                               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                                 <CreditCard className="h-4 w-4 text-muted-foreground" />
                                 <p className="font-medium">
-                                  {(booking as any).paymentSubmission ? "Manual Bank Transfer" : booking.payment.method}
+                                  {(booking as any).paymentSubmission?.paymentMethod
+                                    || ((booking as any).paymentSubmission ? "Manual Bank Transfer" : booking.payment.method)}
                                 </p>
                               </div>
                             </div>
@@ -530,7 +531,13 @@ export function BookingDetailModal({
                               <p className="text-sm text-muted-foreground mb-2">Payment Date</p>
                               <div className="p-3 rounded-lg bg-muted/50">
                                 <p className="text-sm">
-                                  {booking?.payment?.createdAt && format(new Date(booking?.payment?.createdAt), "PPP 'at' p")}
+                                  {(booking as any).paymentSubmission?.createdAt
+                                    ? format(new Date((booking as any).paymentSubmission.createdAt), "PPP 'at' p")
+                                    : booking?.payment?.createdAt
+                                    ? format(new Date(booking.payment.createdAt), "PPP 'at' p")
+                                    : booking?.createdAt
+                                    ? format(new Date(booking.createdAt), "PPP 'at' p")
+                                    : "—"}
                                 </p>
                               </div>
                             </div>
