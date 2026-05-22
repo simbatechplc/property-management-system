@@ -41,6 +41,7 @@ export default function CustomizationPage() {
     bankName: "", bankAccountHolder: "", bankAccountNumber: "", bankInstructions: "",
   });
   const [extraSocials, setExtraSocials] = useState<ExtraSocial[]>([]);
+  const [paymentAccounts, setPaymentAccounts] = useState<Array<{id: string; name: string; accountHolder: string; accountNumber: string; type: string; instructions: string}>>([]);
 
   useEffect(() => {
     api.get("/site-config").then(res => {
@@ -54,6 +55,7 @@ export default function CustomizationPage() {
         bankAccountNumber: d.bankAccountNumber || "", bankInstructions: d.bankInstructions || "",
       });
       if (Array.isArray(d.extraSocials)) setExtraSocials(d.extraSocials);
+      if (Array.isArray(d.paymentAccounts)) setPaymentAccounts(d.paymentAccounts);
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
@@ -73,7 +75,7 @@ export default function CustomizationPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.put("/site-config", { ...form, extraSocials });
+      await api.put("/site-config", { ...form, extraSocials, paymentAccounts });
       toast.success("Site settings saved successfully");
     } catch { toast.error("Failed to save settings"); }
     finally { setSaving(false); }
@@ -272,6 +274,65 @@ export default function CustomizationPage() {
                 <Label>Address / Location</Label>
                 <Input value={form.contactAddress} onChange={e => setForm(f => ({ ...f, contactAddress: e.target.value }))} placeholder="Bole, Addis Ababa, Ethiopia" />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Payment Accounts for Manual Payments */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <span className="text-lg">💳</span> Payment Accounts
+              </CardTitle>
+              <CardDescription>Add bank accounts and mobile payment options (Telebirr, Awash Bank, etc.) that guests can choose from during booking</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {paymentAccounts.map((acc, i) => (
+                <div key={acc.id} className="p-4 border border-border rounded-xl space-y-3 bg-muted/20">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-primary">{acc.name || `Account ${i + 1}`}</span>
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive h-7 px-2"
+                      onClick={() => setPaymentAccounts(prev => prev.filter((_, idx) => idx !== i))}>
+                      ✕ Remove
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Payment Method Name *</Label>
+                      <Input placeholder="e.g. Awash Bank, Telebirr, CBE" value={acc.name}
+                        onChange={e => setPaymentAccounts(prev => prev.map((a, idx) => idx === i ? { ...a, name: e.target.value } : a))} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Type</Label>
+                      <select value={acc.type}
+                        onChange={e => setPaymentAccounts(prev => prev.map((a, idx) => idx === i ? { ...a, type: e.target.value } : a))}
+                        className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm">
+                        <option value="bank">Bank Account</option>
+                        <option value="mobile">Mobile Money (Telebirr, etc.)</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Account Holder Name *</Label>
+                      <Input placeholder="e.g. Kuru Rent PLC" value={acc.accountHolder}
+                        onChange={e => setPaymentAccounts(prev => prev.map((a, idx) => idx === i ? { ...a, accountHolder: e.target.value } : a))} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Account Number / Phone *</Label>
+                      <Input placeholder="e.g. 1000123456789 or 0912345678" value={acc.accountNumber}
+                        onChange={e => setPaymentAccounts(prev => prev.map((a, idx) => idx === i ? { ...a, accountNumber: e.target.value } : a))} />
+                    </div>
+                    <div className="space-y-1 md:col-span-2">
+                      <Label className="text-xs">Additional Instructions (optional)</Label>
+                      <Input placeholder="e.g. Include booking ID in transfer note" value={acc.instructions}
+                        onChange={e => setPaymentAccounts(prev => prev.map((a, idx) => idx === i ? { ...a, instructions: e.target.value } : a))} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <Button variant="outline" size="sm" className="w-full gap-2"
+                onClick={() => setPaymentAccounts(prev => [...prev, { id: Date.now().toString(), name: "", accountHolder: "", accountNumber: "", type: "bank", instructions: "" }])}>
+                <Plus className="w-3.5 h-3.5" /> Add Payment Account
+              </Button>
             </CardContent>
           </Card>
 

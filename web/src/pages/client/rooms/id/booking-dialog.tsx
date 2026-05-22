@@ -135,6 +135,7 @@ export default function BookingDialog({
   const [manualPaymentStep, setManualPaymentStep] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [siteConfig, setSiteConfig] = useState<any>(null);
+  const [selectedPaymentAccount, setSelectedPaymentAccount] = useState<any>(null);
   const [paymentRef, setPaymentRef] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentFullName, setPaymentFullName] = useState("");
@@ -208,6 +209,7 @@ export default function BookingDialog({
         amountPaid: Number(paymentAmount),
         fullName: paymentFullName,
         screenshotUrl,
+        paymentMethod: selectedPaymentAccount?.name || siteConfig?.bankName || "Bank Transfer",
       });
       setPaymentSuccess(true);
     } catch (err: any) {
@@ -421,14 +423,17 @@ export default function BookingDialog({
               <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">3</div>
               <span className="text-sm font-medium">Bank Transfer Payment</span>
             </div>
-            {siteConfig?.bankName && (
+            {(selectedPaymentAccount || siteConfig?.bankName) && (
               <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 space-y-2">
-                <h4 className="font-semibold text-sm text-blue-800 dark:text-blue-200">Transfer to this account:</h4>
+                <h4 className="font-semibold text-sm text-blue-800 dark:text-blue-200">
+                  Transfer to: {selectedPaymentAccount?.name || siteConfig?.bankName}
+                </h4>
                 <div className="space-y-1 text-sm">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Bank:</span><span className="font-medium">{siteConfig.bankName}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Account Name:</span><span className="font-medium">{siteConfig.bankAccountHolder}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Account Number:</span><span className="font-bold text-primary">{siteConfig.bankAccountNumber}</span></div>
-                  {siteConfig.bankInstructions && <p className="text-xs text-muted-foreground mt-2">{siteConfig.bankInstructions}</p>}
+                  <div className="flex justify-between"><span className="text-muted-foreground">Account Name:</span><span className="font-medium">{selectedPaymentAccount?.accountHolder || siteConfig?.bankAccountHolder}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Account Number:</span><span className="font-bold text-primary">{selectedPaymentAccount?.accountNumber || siteConfig?.bankAccountNumber}</span></div>
+                  {(selectedPaymentAccount?.instructions || siteConfig?.bankInstructions) && (
+                    <p className="text-xs text-muted-foreground mt-2">{selectedPaymentAccount?.instructions || siteConfig?.bankInstructions}</p>
+                  )}
                 </div>
               </div>
             )}
@@ -575,14 +580,55 @@ export default function BookingDialog({
               </div>
             </div>
           )}
+          {/* Payment Method Selection */}
+          {(() => {
+            const accounts = siteConfig?.paymentAccounts || [];
+            // Also include legacy single bank account if no accounts configured
+            const allAccounts = accounts.length > 0 ? accounts : (siteConfig?.bankName ? [{
+              id: "legacy", name: siteConfig.bankName, accountHolder: siteConfig.bankAccountHolder,
+              accountNumber: siteConfig.bankAccountNumber, type: "bank", instructions: siteConfig.bankInstructions
+            }] : []);
+            if (allAccounts.length === 0) return null;
+            return (
+              <div className="space-y-2">
+                <p className="text-sm font-semibold">Select Payment Method *</p>
+                <div className="grid grid-cols-1 gap-2">
+                  {allAccounts.map((acc: any) => (
+                    <button key={acc.id} type="button"
+                      onClick={() => setSelectedPaymentAccount(acc)}
+                      className={`w-full text-left p-3 rounded-xl border-2 transition-all ${selectedPaymentAccount?.id === acc.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold text-sm">{acc.name}</p>
+                          <p className="text-xs text-muted-foreground">{acc.accountHolder}</p>
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${acc.type === "mobile" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}>
+                          {acc.type === "mobile" ? "📱 Mobile" : "🏦 Bank"}
+                        </span>
+                      </div>
+                      {selectedPaymentAccount?.id === acc.id && (
+                        <div className="mt-2 pt-2 border-t border-border space-y-1 text-xs">
+                          <div className="flex justify-between"><span className="text-muted-foreground">Account No:</span><span className="font-bold text-primary">{acc.accountNumber}</span></div>
+                          {acc.instructions && <p className="text-muted-foreground">{acc.instructions}</p>}
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Action Buttons */}
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1 bg-transparent" onClick={handleBack}>Back</Button>
-            <Button size="lg" className="flex-1" onClick={handleBookNow} disabled={bookNowMutation.isPending}>
+            <Button size="lg" className="flex-1" onClick={handleBookNow} disabled={bookNowMutation.isPending || (!selectedPaymentAccount && (siteConfig?.paymentAccounts?.length > 0 || siteConfig?.bankName))}>
               {bookNowMutation.isPending ? <Spinner scale={1} /> : "Book Now"}
             </Button>
           </div>
+          {!selectedPaymentAccount && (siteConfig?.paymentAccounts?.length > 0 || siteConfig?.bankName) && (
+            <p className="text-xs text-amber-600 text-center">Please select a payment method above</p>
+          )}
           <p className="text-center text-xs text-muted-foreground">Click Book Now, then submit your transfer proof</p>
         </div>
       )}

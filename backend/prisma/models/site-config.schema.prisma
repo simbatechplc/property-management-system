@@ -17,6 +17,9 @@ model SiteConfig {
   bankAccountHolder   String?
   bankAccountNumber   String?
   bankInstructions    String?
+  // Multiple payment accounts stored as JSON array
+  // Format: [{ id, name, accountHolder, accountNumber, type, instructions }]
+  paymentAccounts     Json?
   updatedAt   DateTime @updatedAt
 }
 

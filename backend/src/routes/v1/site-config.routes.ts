@@ -21,6 +21,7 @@ router.put("/", authGuard({ accessedBy: ["ADMIN"] }), tryCatch(async (req, res) 
     youtube, tiktok, telegram, instagram,
     contactPhone, contactEmail, contactAddress, extraSocials,
     bankName, bankAccountHolder, bankAccountNumber, bankInstructions,
+    paymentAccounts,
   } = req.body;
 
   // Validate required bank fields if any bank field is provided
@@ -42,12 +43,14 @@ router.put("/", authGuard({ accessedBy: ["ADMIN"] }), tryCatch(async (req, res) 
       youtube, tiktok, telegram, instagram,
       contactPhone, contactEmail, contactAddress, extraSocials,
       bankName, bankAccountHolder, bankAccountNumber, bankInstructions,
+      paymentAccounts: paymentAccounts || [],
     },
     update: {
       siteName, logoUrl, tagline, heroTitle, heroSubtitle,
       youtube, tiktok, telegram, instagram,
       contactPhone, contactEmail, contactAddress, extraSocials,
       bankName, bankAccountHolder, bankAccountNumber, bankInstructions,
+      ...(paymentAccounts !== undefined ? { paymentAccounts } : {}),
     },
   });
   res.json({ success: true, message: "Site config updated", data: config });
