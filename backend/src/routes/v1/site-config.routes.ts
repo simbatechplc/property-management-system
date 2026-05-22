@@ -24,14 +24,14 @@ router.put("/", authGuard({ accessedBy: ["ADMIN"] }), tryCatch(async (req, res) 
     paymentAccounts,
   } = req.body;
 
-  // Validate required bank fields if any bank field is provided
-  if (bankName !== undefined || bankAccountHolder !== undefined || bankAccountNumber !== undefined) {
+  // Validate required bank fields only if at least one is non-empty AND not all are provided
+  if (bankName || bankAccountHolder || bankAccountNumber) {
     const missing = [];
     if (!bankName) missing.push("bankName");
     if (!bankAccountHolder) missing.push("bankAccountHolder");
     if (!bankAccountNumber) missing.push("bankAccountNumber");
-    if (missing.length > 0) {
-      return res.status(400).json({ message: `Missing required fields: ${missing.join(", ")}` });
+    if (missing.length > 0 && missing.length < 3) {
+      return res.status(400).json({ message: `Missing required bank fields: ${missing.join(", ")}` });
     }
   }
 
