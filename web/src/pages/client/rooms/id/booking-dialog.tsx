@@ -701,7 +701,7 @@ export default function BookingDialog({
         </div>
 
         {/* Scrollable content area */}
-        <div className="flex-1 overflow-y-auto px-4">
+        <div className="flex-1 overflow-y-auto px-4" data-vaul-no-drag>
           <div className="pb-6">
             {step === "booking" ? bookingContent : receiptContent}
           </div>

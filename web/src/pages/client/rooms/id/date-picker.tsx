@@ -256,9 +256,10 @@ export default function DateRangePicker({
         </div>
       </div>
 
-      {/* Inline calendar */}
+      {/* Inline calendar — data-vaul-no-drag prevents vaul Drawer from
+          consuming the first touch as a drag-detection gesture */}
       {activeField && (
-        <div className="rounded-xl border border-border bg-background shadow-sm p-3">
+        <div className="rounded-xl border border-border bg-background shadow-sm p-3" data-vaul-no-drag>
           <div className="flex items-center justify-between mb-2 px-1">
             <span className="text-xs font-medium text-muted-foreground">
               {activeField === "checkIn" ? "Select check-in date" : "Select check-out date"}
