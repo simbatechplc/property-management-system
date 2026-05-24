@@ -99,25 +99,38 @@ export default function DateRangePicker({
   const modifiers = { booked: (date: Date) => isBooked(date) };
   const modifiersClassNames = { booked: "line-through text-red-400 opacity-60 cursor-not-allowed" };
 
-  // Override DayButton to fix the double-click issue on desktop browsers.
-  // On desktop: fire selection on mouseDown (before focus changes) by calling
-  //   onClick from onMouseDown with preventDefault to skip the focus step.
-  // On touch/mobile: let the native touch → click flow happen normally —
-  //   calling preventDefault on pointerdown cancels the entire touch sequence
-  //   on mobile browsers, which is why we must NOT use onPointerDown there.
+  // Override DayButton to fix the double-tap issue on both desktop and mobile.
+  //
+  // Root cause: on desktop, the first click focuses the <button> (triggering
+  // re-renders) and the second click actually fires onClick. On mobile browsers,
+  // the browser adds a ~300ms delay and the tap can be lost if the element
+  // shifts during a re-render.
+  //
+  // Fix: use onTouchEnd (fires immediately on finger-lift, no delay) for touch
+  // devices, and onMouseDown (fires before focus) for mouse devices. Both call
+  // preventDefault() to stop the browser from also firing a synthetic click
+  // which would double-trigger the handler.
   const PointerDownDayButton = React.useCallback(
-    (props: React.ComponentProps<typeof DayButton>) => (
-      <CalendarDayButton
-        {...props}
-        onMouseDown={(e) => {
-          // Only intercept mouse events (not touch), and only for primary button
-          if (e.nativeEvent instanceof MouseEvent) {
-            e.preventDefault();
-            props.onClick?.(e as unknown as React.MouseEvent<HTMLButtonElement>);
-          }
-        }}
-      />
-    ),
+    (props: React.ComponentProps<typeof DayButton>) => {
+      const handleTouch = (e: React.TouchEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        props.onClick?.(e as unknown as React.MouseEvent<HTMLButtonElement>);
+      };
+      const handleMouseDown = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        props.onClick?.(e);
+      };
+      return (
+        <CalendarDayButton
+          {...props}
+          onTouchEnd={handleTouch}
+          onMouseDown={handleMouseDown}
+          onClick={undefined}
+          style={{ touchAction: "manipulation" }}
+        />
+      );
+    },
     []
   );
 
