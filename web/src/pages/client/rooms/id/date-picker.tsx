@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Calendar as CalendarIcon, X as XIcon, Trash, ChevronDown } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  X as XIcon,
+  Trash,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
-import { format, eachDayOfInterval } from "date-fns";
-import type { DayButton } from "react-day-picker";
+import { format, eachDayOfInterval, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, subMonths, isSameDay, isSameMonth } from "date-fns";
 
 type BookedRange = { checkIn: string | Date; checkOut: string | Date };
 
@@ -18,6 +23,123 @@ type Props = {
   bookedRanges?: BookedRange[];
 };
 
+// Fully custom calendar grid — no react-day-picker, no focus/touch issues.
+// Uses onTouchEnd + onMouseDown to fire immediately on both mobile and desktop.
+function CustomCalendar({
+  selected,
+  onSelect,
+  isDisabled,
+  isBooked,
+}: {
+  selected: Date | null;
+  onSelect: (date: Date) => void;
+  isDisabled: (date: Date) => boolean;
+  isBooked: (date: Date) => boolean;
+}) {
+  const [viewMonth, setViewMonth] = useState<Date>(() => {
+    const d = selected || new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+
+  // Build the grid: 6 weeks × 7 days
+  const gridStart = startOfWeek(startOfMonth(viewMonth), { weekStartsOn: 0 });
+  const gridEnd = endOfWeek(endOfMonth(viewMonth), { weekStartsOn: 0 });
+  const days: Date[] = [];
+  let cur = gridStart;
+  while (cur <= gridEnd) {
+    days.push(new Date(cur));
+    cur = new Date(cur.getTime() + 86400000);
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const handleDay = (e: React.SyntheticEvent, date: Date) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isDisabled(date)) return;
+    onSelect(date);
+  };
+
+  const DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+  return (
+    <div className="select-none w-full" style={{ touchAction: "manipulation" }}>
+      {/* Month navigation */}
+      <div className="flex items-center justify-between mb-3 px-1">
+        <button
+          type="button"
+          onTouchEnd={(e) => { e.preventDefault(); setViewMonth(subMonths(viewMonth, 1)); }}
+          onMouseDown={(e) => { e.preventDefault(); setViewMonth(subMonths(viewMonth, 1)); }}
+          className="p-1.5 rounded-md hover:bg-accent transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <span className="text-sm font-semibold">
+          {format(viewMonth, "MMMM yyyy")}
+        </span>
+        <button
+          type="button"
+          onTouchEnd={(e) => { e.preventDefault(); setViewMonth(addMonths(viewMonth, 1)); }}
+          onMouseDown={(e) => { e.preventDefault(); setViewMonth(addMonths(viewMonth, 1)); }}
+          className="p-1.5 rounded-md hover:bg-accent transition-colors"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Day headers */}
+      <div className="grid grid-cols-7 mb-1">
+        {DAYS.map((d) => (
+          <div key={d} className="text-center text-xs text-muted-foreground font-medium py-1">
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* Day cells */}
+      <div className="grid grid-cols-7 gap-y-1">
+        {days.map((date, i) => {
+          const isCurrentMonth = isSameMonth(date, viewMonth);
+          const isSelected = selected ? isSameDay(date, selected) : false;
+          const isToday = isSameDay(date, today);
+          const disabled = isDisabled(date);
+          const booked = isBooked(date);
+
+          return (
+            <div key={i} className="flex items-center justify-center aspect-square">
+              <button
+                type="button"
+                disabled={disabled}
+                onTouchEnd={(e) => handleDay(e, date)}
+                onMouseDown={(e) => handleDay(e, date)}
+                style={{ touchAction: "manipulation", WebkitTapHighlightColor: "transparent" }}
+                className={[
+                  "w-8 h-8 rounded-full text-sm flex items-center justify-center transition-colors",
+                  !isCurrentMonth ? "opacity-30" : "",
+                  disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer",
+                  booked ? "line-through text-red-400" : "",
+                  isSelected
+                    ? "bg-primary text-primary-foreground font-semibold"
+                    : isToday
+                    ? "border border-primary text-primary"
+                    : isCurrentMonth && !disabled
+                    ? "hover:bg-accent"
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                {date.getDate()}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function DateRangePicker({
   initialCheckIn = null,
   initialCheckOut = null,
@@ -30,7 +152,6 @@ export default function DateRangePicker({
 }: Props) {
   const [activeField, setActiveField] = useState<"checkIn" | "checkOut" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
 
   const bookedDates = React.useMemo(() => {
     const set = new Set<string>();
@@ -73,7 +194,6 @@ export default function DateRangePicker({
 
   function handleDone() {
     if (activeField === "checkIn") {
-      // Auto-advance to check-out if check-in is set
       if (checkIn) setActiveField("checkOut");
       else setActiveField(null);
     } else {
@@ -81,9 +201,7 @@ export default function DateRangePicker({
     }
   }
 
-  // Called on single click — immediately commits the date
-  function handleSelectDate(date: Date | undefined) {
-    if (!date) return;
+  function handleSelectDate(date: Date) {
     if (activeField === "checkIn") {
       setCheckIn(date);
       if (checkOut && checkOut < date) setCheckOut(null);
@@ -96,44 +214,6 @@ export default function DateRangePicker({
   const disabledCheckOut = (date: Date) =>
     isPast(date) || isBooked(date) || (checkIn ? date < checkIn : false);
 
-  const modifiers = { booked: (date: Date) => isBooked(date) };
-  const modifiersClassNames = { booked: "line-through text-red-400 opacity-60 cursor-not-allowed" };
-
-  // Override DayButton to fix the double-tap issue on both desktop and mobile.
-  //
-  // Root cause: on desktop, the first click focuses the <button> (triggering
-  // re-renders) and the second click actually fires onClick. On mobile browsers,
-  // the browser adds a ~300ms delay and the tap can be lost if the element
-  // shifts during a re-render.
-  //
-  // Fix: use onTouchEnd (fires immediately on finger-lift, no delay) for touch
-  // devices, and onMouseDown (fires before focus) for mouse devices. Both call
-  // preventDefault() to stop the browser from also firing a synthetic click
-  // which would double-trigger the handler.
-  const PointerDownDayButton = React.useCallback(
-    (props: React.ComponentProps<typeof DayButton>) => {
-      const handleTouch = (e: React.TouchEvent<HTMLButtonElement>) => {
-        e.preventDefault();
-        e.stopPropagation();
-        props.onClick?.(e as unknown as React.MouseEvent<HTMLButtonElement>);
-      };
-      const handleMouseDown = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault();
-        props.onClick?.(e);
-      };
-      return (
-        <CalendarDayButton
-          {...props}
-          onTouchEnd={handleTouch}
-          onMouseDown={handleMouseDown}
-          onClick={undefined}
-          style={{ touchAction: "manipulation" }}
-        />
-      );
-    },
-    []
-  );
-
   return (
     <div className="space-y-3">
       {/* Date input buttons */}
@@ -142,7 +222,9 @@ export default function DateRangePicker({
           <label className="mb-1.5 block text-sm font-medium text-foreground">Check-in</label>
           <button
             type="button"
-            onClick={() => setActiveField(activeField === "checkIn" ? null : "checkIn")}
+            onTouchEnd={(e) => { e.preventDefault(); setActiveField(activeField === "checkIn" ? null : "checkIn"); }}
+            onMouseDown={(e) => { e.preventDefault(); setActiveField(activeField === "checkIn" ? null : "checkIn"); }}
+            style={{ touchAction: "manipulation" }}
             className={`w-full flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
               activeField === "checkIn" ? "border-primary bg-primary/5" : "border-input bg-card hover:border-primary/50"
             }`}
@@ -158,7 +240,9 @@ export default function DateRangePicker({
           <label className="mb-1.5 block text-sm font-medium text-foreground">Check-out</label>
           <button
             type="button"
-            onClick={() => setActiveField(activeField === "checkOut" ? null : "checkOut")}
+            onTouchEnd={(e) => { e.preventDefault(); setActiveField(activeField === "checkOut" ? null : "checkOut"); }}
+            onMouseDown={(e) => { e.preventDefault(); setActiveField(activeField === "checkOut" ? null : "checkOut"); }}
+            style={{ touchAction: "manipulation" }}
             className={`w-full flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
               activeField === "checkOut" ? "border-primary bg-primary/5" : "border-input bg-card hover:border-primary/50"
             }`}
@@ -174,7 +258,7 @@ export default function DateRangePicker({
 
       {/* Inline calendar */}
       {activeField && (
-        <div className="rounded-xl border border-border bg-background shadow-sm p-2 [touch-action:manipulation]">
+        <div className="rounded-xl border border-border bg-background shadow-sm p-3">
           <div className="flex items-center justify-between mb-2 px-1">
             <span className="text-xs font-medium text-muted-foreground">
               {activeField === "checkIn" ? "Select check-in date" : "Select check-out date"}
@@ -189,7 +273,9 @@ export default function DateRangePicker({
               <Button
                 size="sm"
                 className="h-7 text-xs px-3"
-                onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); handleDone(); }}
+                onTouchEnd={(e) => { e.preventDefault(); handleDone(); }}
+                onMouseDown={(e) => { e.preventDefault(); handleDone(); }}
+                onClick={undefined}
               >
                 Done
               </Button>
@@ -197,28 +283,20 @@ export default function DateRangePicker({
                 size="sm"
                 variant="ghost"
                 className="h-7 text-xs px-2 text-destructive"
-                onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); clearDates(); }}
+                onTouchEnd={(e) => { e.preventDefault(); clearDates(); }}
+                onMouseDown={(e) => { e.preventDefault(); clearDates(); }}
+                onClick={undefined}
               >
                 <Trash className="h-3 w-3" />
               </Button>
             </div>
           </div>
-          <Calendar
-            mode="single"
-            selected={activeField === "checkIn" ? checkIn || undefined : checkOut || undefined}
-            disabled={activeField === "checkIn" ? disabledCheckIn : disabledCheckOut}
-            modifiers={modifiers}
-            modifiersClassNames={modifiersClassNames}
-            onDayMouseEnter={(date) => setHoveredDate(date)}
-            onDayMouseLeave={() => setHoveredDate(null)}
-            footer={
-              hoveredDate && isBooked(hoveredDate) ? (
-                <p className="text-xs text-red-500 text-center pt-1">This date is already booked</p>
-              ) : null
-            }
-            onSelect={(date) => handleSelectDate(date as Date | undefined)}
-            components={{ DayButton: PointerDownDayButton }}
-            className="mx-auto"
+
+          <CustomCalendar
+            selected={activeField === "checkIn" ? checkIn || null : checkOut || null}
+            onSelect={handleSelectDate}
+            isDisabled={activeField === "checkIn" ? disabledCheckIn : disabledCheckOut}
+            isBooked={isBooked}
           />
         </div>
       )}
