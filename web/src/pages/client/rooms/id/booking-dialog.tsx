@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -635,78 +634,67 @@ export default function BookingDialog({
     </div>
   );
 
-  // Desktop: Dialog with onOpenChange preventing outside click
-  if (!isMobile) {
-    return (
-      <Dialog open={isOpen} onOpenChange={handleOnOpenChange}>
-        <DialogContent
-          showCloseButton={false}
-          className="w-full max-w-md rounded-lg max-h-[90vh] overflow-y-auto"
-          onPointerDownOutside={(e) => e.preventDefault()}
-          onEscapeKeyDown={(e) => e.preventDefault()}
-        >
-          <div className="sticky top-0 bg-background z-10 pb-4 border-b border-border pt-4 flex justify-between">
-            <div className="flex items-center gap-2">
-              {step === "receipt" && (
-                <button
-                  onClick={handleBack}
-                  className="p-1 hover:bg-accent rounded-lg transition-colors"
-                  aria-label="Go back"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-              )}
-              <h2 className="flex-1 font-semibold text-lg text-foreground">
-                {step === "booking"
-                  ? `Book ${room.name}`
-                  : "Review Your Booking"}
-              </h2>
-            </div>
+  // Shared header used in both desktop and mobile
+  const dialogHeader = (
+    <div className="sticky top-0 bg-background z-10 pb-4 border-b border-border pt-4 flex justify-between">
+      <div className="flex items-center gap-2">
+        {step === "receipt" && (
+          <button
+            onClick={handleBack}
+            className="p-1 hover:bg-accent rounded-lg transition-colors"
+            aria-label="Go back"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+        )}
+        <h2 className="flex-1 font-semibold text-lg text-foreground">
+          {step === "booking" ? `Book ${room.name}` : "Review Your Booking"}
+        </h2>
+      </div>
+      <Button variant={"outline"} size={"icon"} onClick={() => onClose()}>
+        <X />
+      </Button>
+    </div>
+  );
 
-            <Button variant={"outline"} size={"icon"} onClick={() => onClose()}>
-              <X />
-            </Button>
-          </div>
-
-          <div className="px-1">
-            {step === "booking" ? bookingContent : receiptContent}
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  // Mobile: Drawer with scrollable content and sticky buttons
+  // Both mobile and desktop use Dialog — avoids vaul Drawer touch interception
+  // which caused the double-tap issue on mobile browsers.
   return (
-    <Drawer open={isOpen} onOpenChange={handleOnOpenChange} dismissible={false}>
-      <DrawerContent className="max-h-[95vh] flex flex-col" onPointerDownOutside={(e) => e.preventDefault()}>
-        <div className="sticky top-0 bg-background z-10 border-b border-border px-4 pt-4 pb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {step === "receipt" && (
-              <button
-                onClick={handleBack}
-                className="p-1 hover:bg-accent rounded-lg transition-colors"
-                aria-label="Go back"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-            )}
-            <h2 className="flex-1 font-semibold text-lg text-foreground">
-              {step === "booking" ? `Book ${room.name}` : "Review Your Booking"}
-            </h2>
-          </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onClose()}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {/* Scrollable content area */}
-        <div className="flex-1 overflow-y-auto px-4" data-vaul-no-drag>
-          <div className="pb-6">
-            {step === "booking" ? bookingContent : receiptContent}
-          </div>
-        </div>
-      </DrawerContent>
-    </Drawer>
+    <Dialog open={isOpen} onOpenChange={handleOnOpenChange}>
+      <DialogContent
+        showCloseButton={false}
+        className={
+          isMobile
+            ? "w-full max-w-full h-[95dvh] rounded-t-2xl rounded-b-none fixed bottom-0 top-auto translate-y-0 translate-x-[-50%] left-[50%] flex flex-col p-0 overflow-hidden"
+            : "w-full max-w-md rounded-lg max-h-[90vh] overflow-y-auto"
+        }
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        {isMobile ? (
+          <>
+            <div className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto mt-3 mb-1 shrink-0" />
+            <div className="px-4 shrink-0">
+              {dialogHeader}
+            </div>
+            <div className="flex-1 overflow-y-auto px-4">
+              <div className="pb-6">
+                {step === "booking" ? bookingContent : receiptContent}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="px-1">
+              {dialogHeader}
+            </div>
+            <div className="px-1">
+              {step === "booking" ? bookingContent : receiptContent}
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
