@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Calendar as CalendarIcon, X as XIcon, Trash, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
+import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import { format, eachDayOfInterval } from "date-fns";
+import type { DayButton } from "react-day-picker";
 
 type BookedRange = { checkIn: string | Date; checkOut: string | Date };
 
@@ -30,8 +31,6 @@ export default function DateRangePicker({
   const [activeField, setActiveField] = useState<"checkIn" | "checkOut" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
-  // Pending date — holds the selected date until "Done" is pressed on mobile
-  const [pendingDate, setPendingDate] = useState<Date | null>(null);
 
   const bookedDates = React.useMemo(() => {
     const set = new Set<string>();
@@ -66,34 +65,31 @@ export default function DateRangePicker({
     onChange?.(checkIn, checkOut);
   }, [checkIn, checkOut, onChange]);
 
-  // When activeField changes, pre-populate pendingDate with current value
-  useEffect(() => {
-    if (activeField === "checkIn") setPendingDate(checkIn || null);
-    else if (activeField === "checkOut") setPendingDate(checkOut || null);
-    else setPendingDate(null);
-  }, [activeField]);
-
   function clearDates() {
     setCheckIn(null);
     setCheckOut(null);
     setActiveField(null);
-    setPendingDate(null);
   }
 
   function handleDone() {
-    if (!pendingDate) {
-      setActiveField(null);
-      return;
-    }
     if (activeField === "checkIn") {
-      setCheckIn(pendingDate);
-      if (checkOut && pendingDate && checkOut < pendingDate) setCheckOut(null);
-      setActiveField("checkOut");
-    } else if (activeField === "checkOut") {
-      setCheckOut(pendingDate);
+      // Auto-advance to check-out if check-in is set
+      if (checkIn) setActiveField("checkOut");
+      else setActiveField(null);
+    } else {
       setActiveField(null);
     }
-    setPendingDate(null);
+  }
+
+  // Called on single click — immediately commits the date
+  function handleSelectDate(date: Date | undefined) {
+    if (!date) return;
+    if (activeField === "checkIn") {
+      setCheckIn(date);
+      if (checkOut && checkOut < date) setCheckOut(null);
+    } else if (activeField === "checkOut") {
+      setCheckOut(date);
+    }
   }
 
   const disabledCheckIn = (date: Date) => isPast(date) || isBooked(date);
@@ -103,9 +99,22 @@ export default function DateRangePicker({
   const modifiers = { booked: (date: Date) => isBooked(date) };
   const modifiersClassNames = { booked: "line-through text-red-400 opacity-60 cursor-not-allowed" };
 
-  // Display value: show pending date while calendar is open, otherwise show confirmed date
-  const checkInDisplay = activeField === "checkIn" && pendingDate ? pendingDate : checkIn;
-  const checkOutDisplay = activeField === "checkOut" && pendingDate ? pendingDate : checkOut;
+  // Override DayButton to fire on pointerDown instead of onClick.
+  // This prevents the "focus-then-click" double-tap issue where the first
+  // click only focuses the button and the second click actually selects the date.
+  const PointerDownDayButton = React.useCallback(
+    (props: React.ComponentProps<typeof DayButton>) => (
+      <CalendarDayButton
+        {...props}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          props.onClick?.(e as unknown as React.MouseEvent<HTMLButtonElement>);
+        }}
+        onClick={undefined}
+      />
+    ),
+    []
+  );
 
   return (
     <div className="space-y-3">
@@ -121,8 +130,8 @@ export default function DateRangePicker({
             }`}
           >
             <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className={checkInDisplay ? "text-foreground" : "text-muted-foreground"}>
-              {checkInDisplay ? format(checkInDisplay, "MMM d, yyyy") : "Select date"}
+            <span className={checkIn ? "text-foreground" : "text-muted-foreground"}>
+              {checkIn ? format(checkIn, "MMM d, yyyy") : "Select date"}
             </span>
             <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto" />
           </button>
@@ -137,8 +146,8 @@ export default function DateRangePicker({
             }`}
           >
             <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className={checkOutDisplay ? "text-foreground" : "text-muted-foreground"}>
-              {checkOutDisplay ? format(checkOutDisplay, "MMM d, yyyy") : "Select date"}
+            <span className={checkOut ? "text-foreground" : "text-muted-foreground"}>
+              {checkOut ? format(checkOut, "MMM d, yyyy") : "Select date"}
             </span>
             <ChevronDown className="h-3 w-3 text-muted-foreground ml-auto" />
           </button>
@@ -151,7 +160,12 @@ export default function DateRangePicker({
           <div className="flex items-center justify-between mb-2 px-1">
             <span className="text-xs font-medium text-muted-foreground">
               {activeField === "checkIn" ? "Select check-in date" : "Select check-out date"}
-              {pendingDate && <span className="ml-2 text-primary font-semibold">{format(pendingDate, "MMM d, yyyy")}</span>}
+              {activeField === "checkIn" && checkIn && (
+                <span className="ml-2 text-primary font-semibold">{format(checkIn, "MMM d, yyyy")}</span>
+              )}
+              {activeField === "checkOut" && checkOut && (
+                <span className="ml-2 text-primary font-semibold">{format(checkOut, "MMM d, yyyy")}</span>
+              )}
             </span>
             <div className="flex gap-1">
               <Button
@@ -173,7 +187,7 @@ export default function DateRangePicker({
           </div>
           <Calendar
             mode="single"
-            selected={pendingDate || undefined}
+            selected={activeField === "checkIn" ? checkIn || undefined : checkOut || undefined}
             disabled={activeField === "checkIn" ? disabledCheckIn : disabledCheckOut}
             modifiers={modifiers}
             modifiersClassNames={modifiersClassNames}
@@ -184,10 +198,8 @@ export default function DateRangePicker({
                 <p className="text-xs text-red-500 text-center pt-1">This date is already booked</p>
               ) : null
             }
-            onSelect={(date) => {
-              // Just update pending — don't close yet. User must press Done.
-              setPendingDate(date as Date || null);
-            }}
+            onSelect={(date) => handleSelectDate(date as Date | undefined)}
+            components={{ DayButton: PointerDownDayButton }}
             className="mx-auto"
           />
         </div>

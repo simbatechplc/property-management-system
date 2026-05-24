@@ -397,13 +397,19 @@ export default function BookingModal({
                   <View style={styles.calendarContainer}>
                     <Calendar
                       onDayPress={(day) => handleDateSelect(day.dateString)}
-                      markedDates={{
-                        [checkInDate]: {
-                          selected: true,
-                          selectedColor: PRIMARY_COLOR,
-                        },
-                      }}
+                      markedDates={
+                        checkInDate
+                          ? {
+                              [checkInDate]: {
+                                selected: true,
+                                selectedColor: PRIMARY_COLOR,
+                                disableTouchEvent: false,
+                              },
+                            }
+                          : {}
+                      }
                       minDate={getMinDate()}
+                      disableAllTouchEventsForDisabledDays={true}
                       theme={{
                         selectedDayBackgroundColor: PRIMARY_COLOR,
                         todayTextColor: PRIMARY_COLOR,
@@ -458,16 +464,27 @@ export default function BookingModal({
                     <Calendar
                       onDayPress={(day) => handleDateSelect(day.dateString)}
                       markedDates={{
-                        [checkInDate]: {
-                          selected: true,
-                          selectedColor: "#93c5fd",
-                        },
-                        [checkOutDate]: {
-                          selected: true,
-                          selectedColor: PRIMARY_COLOR,
-                        },
+                        ...(checkInDate
+                          ? {
+                              [checkInDate]: {
+                                selected: true,
+                                selectedColor: "#93c5fd",
+                                disableTouchEvent: false,
+                              },
+                            }
+                          : {}),
+                        ...(checkOutDate
+                          ? {
+                              [checkOutDate]: {
+                                selected: true,
+                                selectedColor: PRIMARY_COLOR,
+                                disableTouchEvent: false,
+                              },
+                            }
+                          : {}),
                       }}
                       minDate={getCheckOutMinDate()}
+                      disableAllTouchEventsForDisabledDays={true}
                       theme={{
                         selectedDayBackgroundColor: PRIMARY_COLOR,
                         todayTextColor: PRIMARY_COLOR,
