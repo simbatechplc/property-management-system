@@ -99,18 +99,23 @@ export default function DateRangePicker({
   const modifiers = { booked: (date: Date) => isBooked(date) };
   const modifiersClassNames = { booked: "line-through text-red-400 opacity-60 cursor-not-allowed" };
 
-  // Override DayButton to fire on pointerDown instead of onClick.
-  // This prevents the "focus-then-click" double-tap issue where the first
-  // click only focuses the button and the second click actually selects the date.
+  // Override DayButton to fix the double-click issue on desktop browsers.
+  // On desktop: fire selection on mouseDown (before focus changes) by calling
+  //   onClick from onMouseDown with preventDefault to skip the focus step.
+  // On touch/mobile: let the native touch → click flow happen normally —
+  //   calling preventDefault on pointerdown cancels the entire touch sequence
+  //   on mobile browsers, which is why we must NOT use onPointerDown there.
   const PointerDownDayButton = React.useCallback(
     (props: React.ComponentProps<typeof DayButton>) => (
       <CalendarDayButton
         {...props}
-        onPointerDown={(e) => {
-          e.preventDefault();
-          props.onClick?.(e as unknown as React.MouseEvent<HTMLButtonElement>);
+        onMouseDown={(e) => {
+          // Only intercept mouse events (not touch), and only for primary button
+          if (e.nativeEvent instanceof MouseEvent) {
+            e.preventDefault();
+            props.onClick?.(e as unknown as React.MouseEvent<HTMLButtonElement>);
+          }
         }}
-        onClick={undefined}
       />
     ),
     []
@@ -156,7 +161,7 @@ export default function DateRangePicker({
 
       {/* Inline calendar */}
       {activeField && (
-        <div className="rounded-xl border border-border bg-background shadow-sm p-2">
+        <div className="rounded-xl border border-border bg-background shadow-sm p-2 [touch-action:manipulation]">
           <div className="flex items-center justify-between mb-2 px-1">
             <span className="text-xs font-medium text-muted-foreground">
               {activeField === "checkIn" ? "Select check-in date" : "Select check-out date"}
