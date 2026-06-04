@@ -33,6 +33,11 @@ export const ownerDetailsSchema = yup.object({
     .required('Business description is required')
     .min(50, 'Description must be at least 50 characters'),
   businessLicenseImage: yup.string().required('Business license image is required'),
+  propertyImages: yup
+    .array()
+    .of(yup.string().required('Each image URL is required'))
+    .min(5, 'Please upload at least 5 property images')
+    .required('Property images are required'),
 });
 
 export const brokerDetailsSchema = yup.object({
@@ -60,6 +65,7 @@ export interface FormData {
   companyCity?: string;
   businessDescription?: string;
   businessLicenseImage?: string;
+  propertyImages?: string[];
   nationalIdFront?: string;
   nationalIdBack?: string;
   bio?: string;

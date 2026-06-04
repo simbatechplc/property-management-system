@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { type FormData, type PropertyType } from './validationSchemas';
 import { ImageUploader } from './ImageUploader';
+import { MultiImageUploader } from './MultiImageUploader';
 
 interface OwnerDetailsStepProps {
   form: UseFormReturn<FormData>;
@@ -216,6 +217,37 @@ export const OwnerDetailsStep = ({ form }: OwnerDetailsStepProps) => {
           value={form.watch('businessLicenseImage') || ''}
           onChange={(value) => form.setValue('businessLicenseImage', value, { shouldValidate: true })}
           error={errors.businessLicenseImage?.message}
+        />
+      </motion.div>
+
+      {/* Property Images Upload */}
+      <motion.div
+        className="space-y-4"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+      >
+        <div className="flex items-center gap-2">
+          <FileText className="w-5 h-5 text-primary" />
+          <Label className="text-base font-semibold text-foreground">
+            Property Images
+          </Label>
+        </div>
+        
+        <div className="p-4 rounded-xl bg-accent/30 border border-border mb-2">
+          <p className="text-sm text-muted-foreground">
+            Upload high-quality images of your property to showcase it to potential guests. Include exterior views, rooms, amenities, and unique features. Accepted formats: PNG, JPG, JPEG.
+          </p>
+        </div>
+
+        <MultiImageUploader
+          label="Property Gallery"
+          description="Upload at least 5 images of your property"
+          value={form.watch('propertyImages') || []}
+          onChange={(value) => form.setValue('propertyImages', value, { shouldValidate: true })}
+          error={errors.propertyImages?.message}
+          minImages={5}
+          maxImages={10}
         />
       </motion.div>
     </div>

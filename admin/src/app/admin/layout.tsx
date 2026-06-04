@@ -7,6 +7,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import React, { ReactNode, useEffect, useState } from "react";
+import { NotificationProvider } from "@/hooks/use-notifications";
 
 const ADMIN_TOKEN_KEY = "admin_session_token";
 const ADMIN_USER_KEY = "admin_session_user";
@@ -61,13 +62,15 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
   if (!userData) return <LoaderState />;
 
   return (
-    <SidebarProvider>
-      <AdminSidebar userData={userData as any} />
-      <SidebarInset className="rounded-xl overflow-hidden min-w-0">
-        <AdminHeader />
-        <div className="flex flex-1 flex-col overflow-x-hidden">{children}</div>
-      </SidebarInset>
-    </SidebarProvider>
+    <NotificationProvider>
+      <SidebarProvider>
+        <AdminSidebar userData={userData as any} />
+        <SidebarInset className="rounded-xl overflow-hidden min-w-0">
+          <AdminHeader />
+          <div className="flex flex-1 flex-col overflow-x-hidden">{children}</div>
+        </SidebarInset>
+      </SidebarProvider>
+    </NotificationProvider>
   );
 };
 

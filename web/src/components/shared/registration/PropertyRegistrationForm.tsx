@@ -54,6 +54,7 @@ export const PropertyRegistrationForm = () => {
       companyCity: '',
       businessDescription: '',
       businessLicenseImage: '',
+      propertyImages: [],
       nationalIdFront: '',
       nationalIdBack: '',
       bio: '',

@@ -30,6 +30,7 @@ import {
   ChevronRight,
   Palette,
   MessageSquare,
+  Bell,
 } from "lucide-react";
 import {
   Collapsible,
@@ -37,6 +38,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useState } from "react";
+import { useNotifications } from "@/hooks/use-notifications";
 
 // Sidebar links per role
 const roleSidebarLinks: Record<
@@ -55,6 +57,7 @@ const roleSidebarLinks: Record<
     { title: "Bookings", url: "/admin/bookings", icon: Calendar },
     { title: "Users", url: "/admin/users", icon: Users },
     { title: "Registrations", url: "/admin/registration-requests", icon: HomeIcon },
+    { title: "Notifications", url: "/admin/notifications", icon: Bell },
     { title: "Activities", url: "/admin/activities", icon: Activity },
     { title: "Messages", url: "/admin/messages", icon: MessageSquare },
     { title: "Customization", url: "/admin/customization", icon: Palette },
@@ -73,6 +76,7 @@ const roleSidebarLinks: Record<
     { title: "Bookings", url: "/admin/bookings", icon: Calendar },
     { title: "Rooms", url: "/admin/rooms", icon: Bed },
     { title: "Staffs", url: "/admin/staffs", icon: Users2 },
+    { title: "Notifications", url: "/admin/notifications", icon: Bell },
     { title: "Activities", url: "/admin/activities", icon: Activity },
     {
       title: "Finance",
@@ -87,11 +91,13 @@ const roleSidebarLinks: Record<
     { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard },
     { title: "Property", url: "/admin/properties", icon: Hotel },
     { title: "Rooms", url: "/admin/rooms", icon: Bed },
+    { title: "Notifications", url: "/admin/notifications", icon: Bell },
   ],
   BROKER: [
     { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard },
     { title: "Clients", url: "/admin/clients", icon: Users },
     { title: "Bookings", url: "/admin/bookings", icon: Calendar },
+    { title: "Notifications", url: "/admin/notifications", icon: Bell },
     { title: "Activities", url: "/admin/activities", icon: Activity },
     {
       title: "Finance",
@@ -111,6 +117,7 @@ interface NavMainProps {
 export function NavMain({ role }: NavMainProps) {
   const pathname = usePathname();
   const links = roleSidebarLinks[role] || [];
+  const { unreadCount } = useNotifications();
 
   // Track which collapsible sections are open
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -242,6 +249,11 @@ export function NavMain({ role }: NavMainProps) {
                       }`}
                     />
                     <span className="font-medium">{item.title}</span>
+                    {item.title === "Notifications" && unreadCount > 0 && (
+                      <span className="ml-auto h-5 min-w-[20px] px-1.5 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
                     {isActive(item.url!) && (
                       <motion.span
                         className="absolute left-0 top-1/2 w-1 h-5 bg-[#c9a227] rounded-r-full"
