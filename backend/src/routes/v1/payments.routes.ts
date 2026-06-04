@@ -133,21 +133,28 @@ router.post(
       const clientUrl = process.env.CLIENT_FRONTEND_URL || "https://property-management-system-wine.vercel.app";
       const checkIn = new Date(booking.checkIn).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
       const checkOut = new Date(booking.checkOut).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-      sendEmail({
-        to: customerEmail,
-        subject: "✅ Your booking has been approved – Kuru Rent",
-        html: bookingPaymentStatusTemplate({
-          customerName,
-          status: "APPROVED",
-          propertyName: booking.property?.name || "Property",
-          roomName: booking.room?.name || "Room",
-          checkIn,
-          checkOut,
-          amountPaid: submission.amountPaid,
-          referenceNumber: submission.referenceNumber,
-          bookingsUrl: `${clientUrl}/account/bookings`,
-        }),
-      }).catch((err: any) => console.error("Email send error (approve):", err?.message));
+      try {
+        await sendEmail({
+          to: customerEmail,
+          subject: "✅ Your booking has been approved – Kuru Rent",
+          html: bookingPaymentStatusTemplate({
+            customerName,
+            status: "APPROVED",
+            propertyName: booking.property?.name || "Property",
+            roomName: booking.room?.name || "Room",
+            checkIn,
+            checkOut,
+            amountPaid: submission.amountPaid,
+            referenceNumber: submission.referenceNumber,
+            bookingsUrl: `${clientUrl}/account/bookings`,
+          }),
+        });
+        console.log(`[PAYMENT APPROVE] Email sent to ${customerEmail}`);
+      } catch (emailErr: any) {
+        console.error(`[PAYMENT APPROVE] Email failed for ${customerEmail}:`, emailErr?.response?.data || emailErr?.message);
+      }
+    } else {
+      console.warn(`[PAYMENT APPROVE] No customer email found for booking ${submission.bookingId}`);
     }
 
     res.json({ success: true, message: "Payment submission approved" });
@@ -194,22 +201,29 @@ router.post(
       const clientUrl = process.env.CLIENT_FRONTEND_URL || "https://property-management-system-wine.vercel.app";
       const checkIn = new Date(booking.checkIn).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
       const checkOut = new Date(booking.checkOut).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-      sendEmail({
-        to: customerEmail,
-        subject: "❌ Payment verification update – Kuru Rent",
-        html: bookingPaymentStatusTemplate({
-          customerName,
-          status: "REJECTED",
-          propertyName: booking.property?.name || "Property",
-          roomName: booking.room?.name || "Room",
-          checkIn,
-          checkOut,
-          amountPaid: submission.amountPaid,
-          referenceNumber: submission.referenceNumber,
-          rejectionReason: reason,
-          bookingsUrl: `${clientUrl}/account/bookings`,
-        }),
-      }).catch((err: any) => console.error("Email send error (reject):", err?.message));
+      try {
+        await sendEmail({
+          to: customerEmail,
+          subject: "❌ Payment verification update – Kuru Rent",
+          html: bookingPaymentStatusTemplate({
+            customerName,
+            status: "REJECTED",
+            propertyName: booking.property?.name || "Property",
+            roomName: booking.room?.name || "Room",
+            checkIn,
+            checkOut,
+            amountPaid: submission.amountPaid,
+            referenceNumber: submission.referenceNumber,
+            rejectionReason: reason,
+            bookingsUrl: `${clientUrl}/account/bookings`,
+          }),
+        });
+        console.log(`[PAYMENT REJECT] Email sent to ${customerEmail}`);
+      } catch (emailErr: any) {
+        console.error(`[PAYMENT REJECT] Email failed for ${customerEmail}:`, emailErr?.response?.data || emailErr?.message);
+      }
+    } else {
+      console.warn(`[PAYMENT REJECT] No customer email found for booking ${submission.bookingId}`);
     }
 
     res.json({ success: true, message: "Payment submission rejected" });
