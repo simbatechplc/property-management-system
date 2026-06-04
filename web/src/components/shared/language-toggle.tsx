@@ -6,7 +6,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import { LANGUAGES, type LangCode } from "@/i18n";
 
 export function LanguageToggle() {
@@ -21,14 +20,14 @@ export function LanguageToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full text-white hover:bg-white/10"
+        <button
+          type="button"
+          className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-white hover:bg-white/10 transition-colors"
+          aria-label="Toggle language"
         >
-          <Globe className="h-[1.2rem] w-[1.2rem]" />
-          <span className="sr-only">Toggle language</span>
-        </Button>
+          <Globe className="h-4 w-4 shrink-0" />
+          <span className="text-xs font-semibold tracking-wide">{currentLang.label}</span>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {LANGUAGES.map((lang) => (
@@ -41,7 +40,7 @@ export function LanguageToggle() {
                 : ""
             }
           >
-            <span className="mr-2">{lang.label}</span>
+            <span className="mr-2 font-medium">{lang.label}</span>
             <span className="text-xs text-muted-foreground">{lang.fullLabel}</span>
           </DropdownMenuItem>
         ))}
