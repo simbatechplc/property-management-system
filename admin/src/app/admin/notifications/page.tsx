@@ -21,23 +21,34 @@ const ACTION_LABELS: Record<string, string> = {
 
 const ACTION_COLORS: Record<string, string> = {
   BOOKED: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  APPROVED_BOOKING: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  REJECTED_BOOKING: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  CANCELLED_BOOKING: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-  CREATE_GUEST_HOUSE: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-  REGISTRATION_REQUEST: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+  APPROVED_BOOKING:
+    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  REJECTED_BOOKING:
+    "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  CANCELLED_BOOKING:
+    "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+  CREATE_GUEST_HOUSE:
+    "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+  REGISTRATION_REQUEST:
+    "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
 };
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"all" | "unread" | "pinned">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "unread" | "pinned">(
+    "all",
+  );
   const [pinnedNotifications, setPinnedNotifications] = useState<string[]>([]);
-  const [selectedNotification, setSelectedNotification] = useState<any | null>(null);
+  const [selectedNotification, setSelectedNotification] = useState<any | null>(
+    null,
+  );
 
   useEffect(() => {
-    const storedPinned = window.localStorage.getItem("admin_notifications_pinned");
+    const storedPinned = window.localStorage.getItem(
+      "admin_notifications_pinned",
+    );
     if (storedPinned) {
       try {
         setPinnedNotifications(JSON.parse(storedPinned));
@@ -48,7 +59,10 @@ export default function NotificationsPage() {
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem("admin_notifications_pinned", JSON.stringify(pinnedNotifications));
+    window.localStorage.setItem(
+      "admin_notifications_pinned",
+      JSON.stringify(pinnedNotifications),
+    );
   }, [pinnedNotifications]);
 
   const fetchNotifications = async () => {
@@ -73,10 +87,10 @@ export default function NotificationsPage() {
   const handleMarkAsRead = async (notificationId: string) => {
     try {
       await api.patch(`/activities/notifications/${notificationId}/read`);
-      setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n)),
       );
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
     }
@@ -109,7 +123,7 @@ export default function NotificationsPage() {
     setPinnedNotifications((prev) =>
       prev.includes(notificationId)
         ? prev.filter((id) => id !== notificationId)
-        : [...prev, notificationId]
+        : [...prev, notificationId],
     );
   };
 
@@ -131,20 +145,35 @@ export default function NotificationsPage() {
               </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchNotifications} className="gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchNotifications}
+            className="gap-2">
             <RefreshCw className="h-3.5 w-3.5" /> Refresh
           </Button>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) =>
+            setActiveTab(value as "all" | "unread" | "pinned")
+          }
+          className="mb-6">
           <TabsList className="grid w-full grid-cols-3 gap-2 rounded-full bg-muted p-1 text-sm">
-            <TabsTrigger value="all" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full">
+            <TabsTrigger
+              value="all"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full">
               All
             </TabsTrigger>
-            <TabsTrigger value="unread" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full">
+            <TabsTrigger
+              value="unread"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full">
               Unread
             </TabsTrigger>
-            <TabsTrigger value="pinned" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full">
+            <TabsTrigger
+              value="pinned"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full">
               Pinned
             </TabsTrigger>
           </TabsList>
@@ -155,19 +184,25 @@ export default function NotificationsPage() {
             <Card className="p-16 text-center">
               <Bell className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-30" />
               <p className="text-muted-foreground font-medium">
-                {activeTab === "pinned" ? "No pinned notifications" : activeTab === "unread" ? "No unread notifications" : "No notifications"}
+                {activeTab === "pinned"
+                  ? "No pinned notifications"
+                  : activeTab === "unread"
+                    ? "No unread notifications"
+                    : "No notifications"}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
                 {activeTab === "pinned"
                   ? "Pin a notification to keep it at the top."
                   : activeTab === "unread"
-                  ? "You're all caught up."
-                  : "You're all caught up!"}
+                    ? "You're all caught up."
+                    : "You're all caught up!"}
               </p>
             </Card>
           ) : (
             filteredNotifications.map((notification: any) => {
-              const isNew = new Date(notification.timestamp) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+              const isNew =
+                new Date(notification.timestamp) >
+                new Date(Date.now() - 24 * 60 * 60 * 1000);
               const isRead = notification.isRead || !isNew;
               const isPinned = pinnedNotifications.includes(notification.id);
 
@@ -176,18 +211,20 @@ export default function NotificationsPage() {
                   key={notification.id}
                   className={cn(
                     "p-4 cursor-pointer transition-all hover:shadow-md",
-                    !isRead && "border-l-4 border-l-primary bg-primary/5"
+                    !isRead && "border-l-4 border-l-primary bg-primary/5",
                   )}
-                  onClick={() => handleNotificationClick(notification)}
-                >
+                  onClick={() => handleNotificationClick(notification)}>
                   <div className="flex items-start gap-3">
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className={cn(
-                          "text-xs font-medium px-2 py-0.5 rounded-full",
-                          ACTION_COLORS[notification.action] || "bg-gray-100 text-gray-700"
-                        )}>
-                          {ACTION_LABELS[notification.action] || notification.action}
+                        <span
+                          className={cn(
+                            "text-xs font-medium px-2 py-0.5 rounded-full",
+                            ACTION_COLORS[notification.action] ||
+                              "bg-gray-100 text-gray-700",
+                          )}>
+                          {ACTION_LABELS[notification.action] ||
+                            notification.action}
                         </span>
                         {!isRead && (
                           <Badge variant="default" className="text-xs">
@@ -195,7 +232,9 @@ export default function NotificationsPage() {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-foreground mb-1">{notification.description}</p>
+                      <p className="text-sm text-foreground mb-1">
+                        {notification.description}
+                      </p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Clock className="w-3 h-3" />
                         {new Date(notification.timestamp).toLocaleString()}
@@ -210,11 +249,21 @@ export default function NotificationsPage() {
                           handleTogglePin(notification.id);
                         }}
                         className="h-8 w-8 p-0"
-                        aria-label={isPinned ? "Unpin notification" : "Pin notification"}
-                      >
-                        <Star className={cn("h-4 w-4", isPinned ? "text-amber-400" : "text-muted-foreground")} />
+                        aria-label={
+                          isPinned ? "Unpin notification" : "Pin notification"
+                        }>
+                        <Star
+                          className={cn(
+                            "h-4 w-4",
+                            isPinned
+                              ? "text-amber-400"
+                              : "text-muted-foreground",
+                          )}
+                        />
                       </Button>
-                      {!isRead && <div className="w-2 h-2 rounded-full bg-primary" />}
+                      {!isRead && (
+                        <div className="w-2 h-2 rounded-full bg-primary" />
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -231,11 +280,14 @@ export default function NotificationsPage() {
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <span className={cn(
-                    "text-xs font-medium px-2 py-0.5 rounded-full",
-                    ACTION_COLORS[selectedNotification.action] || "bg-gray-100 text-gray-700"
-                  )}>
-                    {ACTION_LABELS[selectedNotification.action] || selectedNotification.action}
+                  <span
+                    className={cn(
+                      "text-xs font-medium px-2 py-0.5 rounded-full",
+                      ACTION_COLORS[selectedNotification.action] ||
+                        "bg-gray-100 text-gray-700",
+                    )}>
+                    {ACTION_LABELS[selectedNotification.action] ||
+                      selectedNotification.action}
                   </span>
                   {selectedNotification.isRead && (
                     <Badge variant="outline" className="text-xs gap-1">
@@ -247,12 +299,13 @@ export default function NotificationsPage() {
                   variant="ghost"
                   size="icon"
                   onClick={handleCloseDetail}
-                  className="h-8 w-8"
-                >
+                  className="h-8 w-8">
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="text-sm text-foreground mb-4">{selectedNotification.description}</p>
+              <p className="text-sm text-foreground mb-4">
+                {selectedNotification.description}
+              </p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground mb-6">
                 <Clock className="w-3 h-3" />
                 {new Date(selectedNotification.timestamp).toLocaleString()}
