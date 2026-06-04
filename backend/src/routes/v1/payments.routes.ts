@@ -3,6 +3,8 @@ import paymentController from "../../controllers/payments.controller";
 import { authGuard } from "../../middleware/auth-middleware";
 import { prisma } from "../../lib/prisma";
 import { tryCatch } from "../../utils/async-handler";
+import { sendEmail } from "../../utils/email";
+import { bookingPaymentStatusTemplate } from "../../templates";
 const router = Router();
 
 // /payments
@@ -95,10 +97,20 @@ router.post(
     const { id } = req.params;
     const submission = await (prisma as any).paymentSubmission.findUnique({
       where: { id },
-      include: { booking: { include: { payment: true, user: true } } },
+      include: {
+        booking: {
+          include: {
+            payment: true,
+            user: { select: { id: true, name: true, email: true } },
+            property: { select: { name: true } },
+            room: { select: { name: true } },
+          },
+        },
+      },
     });
     if (!submission) return res.status(404).json({ message: "Submission not found" });
     if (submission.status !== "PENDING") return res.status(400).json({ message: "Submission is not pending" });
+
     await prisma.$transaction(async (tx) => {
       await (tx as any).paymentSubmission.update({
         where: { id },
@@ -112,6 +124,32 @@ router.post(
         });
       }
     });
+
+    // Send approval email to customer
+    const booking = submission.booking;
+    const customerEmail = booking?.user?.email || booking?.guestEmail;
+    const customerName = booking?.user?.name || booking?.guestName || "Customer";
+    if (customerEmail) {
+      const clientUrl = process.env.CLIENT_FRONTEND_URL || "https://property-management-system-wine.vercel.app";
+      const checkIn = new Date(booking.checkIn).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+      const checkOut = new Date(booking.checkOut).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+      sendEmail({
+        to: customerEmail,
+        subject: "✅ Your booking has been approved – Kuru Rent",
+        html: bookingPaymentStatusTemplate({
+          customerName,
+          status: "APPROVED",
+          propertyName: booking.property?.name || "Property",
+          roomName: booking.room?.name || "Room",
+          checkIn,
+          checkOut,
+          amountPaid: submission.amountPaid,
+          referenceNumber: submission.referenceNumber,
+          bookingsUrl: `${clientUrl}/account/bookings`,
+        }),
+      }).catch((err: any) => console.error("Email send error (approve):", err?.message));
+    }
+
     res.json({ success: true, message: "Payment submission approved" });
   })
 );
@@ -122,13 +160,58 @@ router.post(
   tryCatch(async (req, res) => {
     const { id } = req.params;
     const { reason } = req.body;
-    const submission = await (prisma as any).paymentSubmission.findUnique({ where: { id } });
+    const submission = await (prisma as any).paymentSubmission.findUnique({
+      where: { id },
+      include: {
+        booking: {
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+            property: { select: { name: true } },
+            room: { select: { name: true } },
+          },
+        },
+      },
+    });
     if (!submission) return res.status(404).json({ message: "Submission not found" });
     if (submission.status !== "PENDING") return res.status(400).json({ message: "Submission is not pending" });
-    await (prisma as any).paymentSubmission.update({
-      where: { id },
-      data: { status: "REJECTED", reviewedBy: req.user?.id, reviewedAt: new Date() },
+
+    await prisma.$transaction(async (tx) => {
+      await (tx as any).paymentSubmission.update({
+        where: { id },
+        data: { status: "REJECTED", reviewedBy: req.user?.id, reviewedAt: new Date() },
+      });
+      await tx.booking.update({
+        where: { id: submission.bookingId },
+        data: { status: "REJECTED", rejectionReason: reason || null },
+      });
     });
+
+    // Send rejection email to customer
+    const booking = submission.booking;
+    const customerEmail = booking?.user?.email || booking?.guestEmail;
+    const customerName = booking?.user?.name || booking?.guestName || "Customer";
+    if (customerEmail) {
+      const clientUrl = process.env.CLIENT_FRONTEND_URL || "https://property-management-system-wine.vercel.app";
+      const checkIn = new Date(booking.checkIn).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+      const checkOut = new Date(booking.checkOut).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+      sendEmail({
+        to: customerEmail,
+        subject: "❌ Payment verification update – Kuru Rent",
+        html: bookingPaymentStatusTemplate({
+          customerName,
+          status: "REJECTED",
+          propertyName: booking.property?.name || "Property",
+          roomName: booking.room?.name || "Room",
+          checkIn,
+          checkOut,
+          amountPaid: submission.amountPaid,
+          referenceNumber: submission.referenceNumber,
+          rejectionReason: reason,
+          bookingsUrl: `${clientUrl}/account/bookings`,
+        }),
+      }).catch((err: any) => console.error("Email send error (reject):", err?.message));
+    }
+
     res.json({ success: true, message: "Payment submission rejected" });
   })
 );
