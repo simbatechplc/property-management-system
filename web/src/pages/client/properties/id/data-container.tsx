@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import FormatedAmount from "@/components/shared/formatted-amount";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +29,7 @@ const AdminContactSection = () => {
   }, []);
   return (
     <div className="space-y-2.5 pt-4 border-t border-border">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Contact</p>
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("propertyDetail.contact")}</p>
       {config?.contactPhone ? (
         <a href={`tel:${config.contactPhone}`} className="flex items-center gap-2.5 text-sm hover:text-primary transition-colors group">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
@@ -46,7 +47,7 @@ const AdminContactSection = () => {
         </a>
       ) : null}
       {!config?.contactPhone && !config?.contactEmail && (
-        <p className="text-sm text-muted-foreground">Contact us for more information</p>
+        <p className="text-sm text-muted-foreground">{t("propertyDetail.contactUs")}</p>
       )}
     </div>
   );
@@ -64,6 +65,7 @@ const facilityIcons: Record<string, React.ReactNode> = {
 };
 
 const DataContainer = ({ data }: Props) => {
+  const { t } = useTranslation();
   const property = data.data;
   const navigate = useNavigate();
   const { isFavorited, toggle } = useFavorites();
@@ -111,11 +113,27 @@ const DataContainer = ({ data }: Props) => {
     ? property.reviews.reduce((sum: number, r: any) => sum + (r.rating ?? 0), 0) / property.reviews.length
     : 0;
 
-  const ratingLabel =
-    avgRating >= 4.5 ? "Exceptional"
-    : avgRating >= 4 ? "Excellent"
-    : avgRating >= 3.5 ? "Very Good"
-    : avgRating > 0 ? "Good" : null;
+  const NAV_TAB_LABELS: Record<string, string> = {
+    "Overview": t("propertyDetail.overview"),
+    "Rooms": t("booking.checkIn").replace(":", "") + "/" + t("room.roomType"),
+    "Trip recommendations": t("propertyDetail.trip"),
+    "Facilities": t("propertyDetail.facilitiesTitle"),
+    "Reviews": t("propertyDetail.guestReviews"),
+    "Location": t("propertyDetail.location"),
+    "Policies": t("propertyDetail.policies"),
+  };
+
+  const PANEL_TAB_LABELS: Record<string, string> = {
+    "Facilities": t("propertyDetail.facilitiesTitle"),
+    "Reviews": t("propertyDetail.guestReviews"),
+    "Location": t("propertyDetail.location"),
+    "Policies": t("propertyDetail.policies"),
+    "Trip": t("propertyDetail.trip"),
+  };
+    avgRating >= 4.5 ? t("propertyDetail.exceptional")
+    : avgRating >= 4 ? t("propertyDetail.excellent")
+    : avgRating >= 3.5 ? t("propertyDetail.veryGood")
+    : avgRating > 0 ? t("propertyDetail.good") : null;
 
   const starCount = Math.round(avgRating);
 
@@ -368,9 +386,8 @@ const DataContainer = ({ data }: Props) => {
 
       {/* Back */}
       <div className="py-3 px-4">
-        <button onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors group">
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" /> Back to search results
+        <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors group">
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" /> {t("propertyDetail.backToSearch")}
         </button>
       </div>
 
@@ -437,7 +454,7 @@ const DataContainer = ({ data }: Props) => {
           <button onClick={() => { setGalleryStartIdx(0); setGalleryOpen(true); }}
             className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-foreground bg-muted hover:bg-muted/80 border border-border px-3 py-1.5 rounded-full transition-all">
             <ImageIcon className="w-3.5 h-3.5 text-primary" />
-            See all {lightboxImages.length} photos
+            {t("propertyDetail.seeAllPhotos", { count: lightboxImages.length })}
           </button>
           {avgRating > 0 && (
             <div className="flex items-center gap-1.5 text-xs sm:text-sm">
@@ -461,11 +478,9 @@ const DataContainer = ({ data }: Props) => {
         <div className="max-w-7xl mx-auto px-4 flex overflow-x-auto">
           {NAV_TABS.filter(tab => !(isVilla && tab === "Rooms")).map((tab) => (
             <button key={tab} onClick={() => handleTabClick(tab)}
-              className={cn(
-                "px-5 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors shrink-0",
-                activeTab === tab ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-              )}>
-              {tab}
+              className={cn("px-5 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors shrink-0",
+                activeTab === tab ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>
+              {NAV_TAB_LABELS[tab] || tab}
             </button>
           ))}
         </div>
@@ -514,10 +529,10 @@ const DataContainer = ({ data }: Props) => {
             {/* Quick highlights */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
               {[
-                { icon: <Clock className="w-4 h-4 text-primary" />, label: "Check-in", value: "From 15:00" },
-                { icon: <Clock className="w-4 h-4 text-primary" />, label: "Check-out", value: "Until 12:00" },
-                { icon: <Shield className="w-4 h-4 text-primary" />, label: "Cancellation", value: "Free" },
-                { icon: <Coffee className="w-4 h-4 text-primary" />, label: "Rooms", value: `${property.rooms?.length ?? 0} available` },
+                { icon: <Clock className="w-4 h-4 text-primary" />, label: t("propertyDetail.checkIn"), value: t("propertyDetail.checkInTime") },
+                { icon: <Clock className="w-4 h-4 text-primary" />, label: t("propertyDetail.checkOut"), value: t("propertyDetail.checkOutTime") },
+                { icon: <Shield className="w-4 h-4 text-primary" />, label: t("propertyDetail.cancellation"), value: t("propertyDetail.cancellationFree") },
+                { icon: <Coffee className="w-4 h-4 text-primary" />, label: t("nav.properties"), value: t("propertyDetail.roomsAvailable", { count: property.rooms?.length ?? 0 }) },
                 ...((((property as any).type === "APARTMENT" || (property as any).type === "VILLA") && (property as any).furnishingStatus) ? [{
                   icon: <span className="text-primary text-sm">🛋️</span>,
                   label: "Furnishing",
@@ -616,10 +631,10 @@ const DataContainer = ({ data }: Props) => {
 
                       <div className="flex items-center justify-between pt-4 border-t border-border">
                         <span className="text-xs text-green-600 font-medium bg-green-50 dark:bg-green-900/20 px-2.5 py-1 rounded-full">
-                          🏡 Entire villa — exclusive use
+                          {t("propertyDetail.villaExclusive")}
                         </span>
                         <Button className="rounded-full px-6" onClick={handleBookProperty}>
-                          Book This Villa
+                          {t("propertyDetail.bookThisVilla")}
                         </Button>
                       </div>
                     </div>
@@ -630,8 +645,8 @@ const DataContainer = ({ data }: Props) => {
               /* Non-villa — show rooms list */
               <div>
                 <div className="flex items-center justify-between mb-5">
-                  <h2 className="text-xl font-bold">{isPrivate ? "Property Details" : "Select your room"}</h2>
-                  <span className="text-sm text-muted-foreground">{property.rooms?.length ?? 0} {isPrivate ? "spaces" : "room types"}</span>
+                  <h2 className="text-xl font-bold">{isPrivate ? t("propertyDetail.propertyDetails") : t("propertyDetail.selectRoom")}</h2>
+                  <span className="text-sm text-muted-foreground">{property.rooms?.length ?? 0} {isPrivate ? t("propertyDetail.spaces") : t("search.room_other", { count: property.rooms?.length ?? 0 })}</span>
                 </div>
                 <div className="flex flex-col gap-4">
                   {property?.rooms?.length > 0 ? property.rooms.map((r: any) => {
@@ -665,7 +680,7 @@ const DataContainer = ({ data }: Props) => {
                                 </div>
                               </div>
                               <div className="text-right shrink-0">
-                                {showPerNight && <p className="text-xs text-muted-foreground">per night</p>}
+                                {showPerNight && <p className="text-xs text-muted-foreground">{t("propertyDetail.avgPricePerNight")}</p>}
                                 <FormatedAmount amount={r.price} className="font-bold text-xl text-red-500" />
                               </div>
                             </div>
@@ -682,7 +697,7 @@ const DataContainer = ({ data }: Props) => {
                           <div className="flex items-center justify-between pt-3 border-t border-border">
                             <div className="flex flex-col gap-0.5">
                               <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full w-fit", r.availability ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400")}>
-                                {r.availability ? "Available" : "Unavailable"}
+                              {r.availability ? t("propertyDetail.available") : t("propertyDetail.unavailable")}
                               </span>
                               {!r.availability && r.bookings?.length > 0 && (() => {
                                 const today = new Date(); today.setHours(0,0,0,0);
@@ -692,7 +707,7 @@ const DataContainer = ({ data }: Props) => {
                               })()}
                             </div>
                             <Button size="sm" className="rounded-full px-5" onClick={() => navigate(`/rooms/${r.id}`)}>
-                              {isPrivate ? "View Details" : "Book this room"}
+                              {isPrivate ? t("propertyDetail.viewDetails") : t("propertyDetail.bookThisRoom")}
                             </Button>
                           </div>
                         </div>
@@ -701,7 +716,7 @@ const DataContainer = ({ data }: Props) => {
                   }) : (
                     <div className="border border-border rounded-2xl p-10 text-center text-muted-foreground bg-muted/20">
                       <BedDouble className="w-10 h-10 mx-auto mb-2 opacity-20" />
-                      <p className="text-sm">No rooms available at this time.</p>
+                      <p className="text-sm">{t("propertyDetail.noRoomsAvailable")}</p>
                     </div>
                   )}
                 </div>
@@ -711,22 +726,22 @@ const DataContainer = ({ data }: Props) => {
 
           {/* Trip Recommendations */}
           <section id="trip-recommendations" className="mb-10">
-            <h2 className="text-xl font-bold mb-1">Plan your journey</h2>
-            <p className="text-sm text-muted-foreground mb-4">Book your ride in advance for a hassle-free trip</p>
+            <h2 className="text-xl font-bold mb-1">{t("propertyDetail.planYourJourney")}</h2>
+            <p className="text-sm text-muted-foreground mb-4">{t("propertyDetail.planJourneySubtitle")}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
-                { icon: <Plane className="w-8 h-8 text-primary" />, title: "Book your airport transfer", desc: "Get to your hotel easily and securely", url: "https://www.ethiopianairlines.com/en-ke/", label: "Search flights" },
-                { icon: <CarFront className="w-8 h-8 text-primary" />, title: "Rent a car", desc: "Find an ideal ride for your trip", url: "https://ride8294.com/", label: "Search cars" },
-              ].map(({ icon, title, desc, url, label }) => (
-                <div key={title} className="border border-border rounded-2xl p-5 flex flex-col justify-between hover:shadow-md hover:border-primary/30 transition-all bg-card">
+                { icon: <Plane className="w-8 h-8 text-primary" />, titleKey: "propertyDetail.bookAirportTransfer", descKey: "propertyDetail.airportTransferDesc", url: "https://www.ethiopianairlines.com/en-ke/", labelKey: "propertyDetail.searchFlights" },
+                { icon: <CarFront className="w-8 h-8 text-primary" />, titleKey: "propertyDetail.rentACar", descKey: "propertyDetail.rentCarDesc", url: "https://ride8294.com/", labelKey: "propertyDetail.searchCars" },
+              ].map(({ icon, titleKey, descKey, url, labelKey }) => (
+                <div key={titleKey} className="border border-border rounded-2xl p-5 flex flex-col justify-between hover:shadow-md hover:border-primary/30 transition-all bg-card">
                   <div className="flex items-start gap-4 mb-4">
                     <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">{icon}</div>
                     <div>
-                      <p className="font-semibold text-sm">{title}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{desc}</p>
+                      <p className="font-semibold text-sm">{t(titleKey)}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{t(descKey)}</p>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm" className="w-full rounded-full" onClick={() => window.open(url, "_blank")}>{label}</Button>
+                  <Button variant="outline" size="sm" className="w-full rounded-full" onClick={() => window.open(url, "_blank")}>{t(labelKey)}</Button>
                 </div>
               ))}
             </div>
@@ -742,12 +757,12 @@ const DataContainer = ({ data }: Props) => {
             return (
               <section id="facilities" className="mb-10">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold">Services & Facilities</h2>
+                  <h2 className="text-xl font-bold">{t("propertyDetail.servicesAndFacilities")}</h2>
                   <button onClick={() => setPanelTab("Facilities")} className="text-sm text-primary hover:underline flex items-center gap-1">
-                    See all <ChevronRight className="w-4 h-4" />
+                    {t("propertyDetail.seeAll")} <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Facilities</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">{t("propertyDetail.facilitiesTitle")}</p>
                 {propFacilities.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5">
                     {propFacilities.slice(0, 6).map((f: any) => (
@@ -758,11 +773,11 @@ const DataContainer = ({ data }: Props) => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground italic mb-5">No facilities listed yet.</p>
+                  <p className="text-sm text-muted-foreground italic mb-5">{t("propertyDetail.noFacilities")}</p>
                 )}
                 {allRoomServices.length > 0 && (
                   <>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Room Services</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">{t("propertyDetail.roomServices")}</p>
                     <div className="flex flex-wrap gap-2">
                       {allRoomServices.slice(0, 10).map((s: any) => (
                         <span key={(s as any).id} className="inline-flex items-center gap-1.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-full px-3 py-1 text-xs font-medium">
@@ -779,7 +794,7 @@ const DataContainer = ({ data }: Props) => {
 
           {/* Reviews */}
           <section id="reviews" className="mb-10">
-            <h2 className="text-xl font-bold mb-4">Guest Reviews</h2>
+            <h2 className="text-xl font-bold mb-4">{t("propertyDetail.guestReviews")}</h2>
             {avgRating > 0 ? (
               <div className="flex items-center gap-4 mb-4 p-5 border border-border rounded-2xl cursor-pointer hover:bg-muted/30 hover:border-primary/30 transition-all bg-card" onClick={() => setPanelTab("Reviews")}>
                 <div className="bg-primary text-white font-bold text-2xl w-16 h-16 flex items-center justify-center rounded-2xl shadow-md shrink-0">
@@ -792,27 +807,27 @@ const DataContainer = ({ data }: Props) => {
                       <FaStar key={i} className="w-3.5 h-3.5 text-yellow-400" />
                     ))}
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">{property.reviews?.length ?? 0} verified reviews</p>
+                  <p className="text-sm text-muted-foreground mt-1">{t("propertyDetail.verifiedReviews", { count: property.reviews?.length ?? 0 })}</p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </div>
             ) : (
               <div className="p-5 border border-border rounded-2xl text-center text-muted-foreground bg-muted/20">
                 <Star className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                <p className="text-sm">No reviews yet. Be the first to review!</p>
+                <p className="text-sm">{t("propertyDetail.noReviews")}</p>
               </div>
             )}
             <button onClick={() => setPanelTab("Reviews")} className="text-sm text-primary hover:underline flex items-center gap-1 mt-2">
-              Read all reviews <ChevronRight className="w-4 h-4" />
+              {t("propertyDetail.readAllReviews")} <ChevronRight className="w-4 h-4" />
             </button>
           </section>
 
           {/* Location */}
           <section id="location" className="mb-10">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Location</h2>
+              <h2 className="text-xl font-bold">{t("propertyDetail.location")}</h2>
               <button onClick={() => setPanelTab("Location")} className="text-sm text-primary hover:underline flex items-center gap-1">
-                View map <ChevronRight className="w-4 h-4" />
+                {t("propertyDetail.viewMap")} <ChevronRight className="w-4 h-4" />
               </button>
             </div>
             <div className="p-4 border border-border rounded-2xl bg-card hover:border-primary/30 transition-colors cursor-pointer" onClick={() => setPanelTab("Location")}>
@@ -828,18 +843,18 @@ const DataContainer = ({ data }: Props) => {
 
           {/* Policies */}
           <section id="policies" className="mb-10">
-            <h2 className="text-xl font-bold mb-4">Property policies</h2>
+            <h2 className="text-xl font-bold mb-4">{t("propertyDetail.propertyPolicies")}</h2>
             <div className="border border-border rounded-2xl overflow-hidden bg-card">
               {(() => {
                 const rawPolicies = (property as any).policies;
                 const policies: Array<{ key: string; value: string }> = Array.isArray(rawPolicies) && rawPolicies.length > 0
                   ? rawPolicies
                   : [
-                    { key: "Check-in", value: "From 15:00" },
-                    { key: "Check-out", value: "Until 12:00" },
-                    { key: "Cancellation", value: "Free cancellation available" },
+                    { key: t("propertyDetail.checkIn"), value: t("propertyDetail.checkInTime") },
+                    { key: t("propertyDetail.checkOut"), value: t("propertyDetail.checkOutTime") },
+                    { key: t("propertyDetail.cancellation"), value: t("room.freeCancellation") },
                     { key: "Children", value: "All children welcome" },
-                    { key: "Pets", value: "Not allowed" },
+                    { key: t("room.pets"), value: t("room.petsNotAllowed") },
                   ];
                 return policies.map(({ key, value }, i) => (
                   <div key={key} className={cn("flex justify-between items-center px-5 py-3.5 text-sm", i < policies.length - 1 ? "border-b border-border" : "")}>
@@ -857,7 +872,7 @@ const DataContainer = ({ data }: Props) => {
           <div className="sticky top-24 rounded-2xl border border-border bg-card shadow-lg overflow-hidden">
             {/* Price header */}
             <div className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground p-5">
-              <p className="text-xs opacity-70 mb-1">{isPrivate ? ((property as any).type === "VILLA" ? "Villa Price" : "Price" + (showPerNight ? " per night (whole property)" : "")) : "Avg price" + (showPerNight ? " per night" : "")}</p>
+              <p className="text-xs opacity-70 mb-1">{isPrivate ? ((property as any).type === "VILLA" ? t("propertyDetail.villaPrice") : t("propertyDetail.pricePerNight")) : t("propertyDetail.avgPricePerNight")}</p>
               {isPrivate ? (
                 pricePerNight ? (
                   (() => {
@@ -873,7 +888,7 @@ const DataContainer = ({ data }: Props) => {
                       <p className="text-3xl font-bold">ETB {pricePerNight.toLocaleString()}</p>
                     );
                   })()
-                ) : <p className="text-lg font-semibold opacity-80">Price not set</p>
+                ) : <p className="text-lg font-semibold opacity-80">{t("propertyDetail.priceNotSet")}</p>
               ) : (
                 avgPrice ? (
                   (() => {
@@ -889,12 +904,12 @@ const DataContainer = ({ data }: Props) => {
                       <p className="text-3xl font-bold">ETB {avgPrice.toLocaleString()}</p>
                     );
                   })()
-                ) : <p className="text-lg font-semibold opacity-80">Contact for price</p>
+                ) : <p className="text-lg font-semibold opacity-80">{t("propertyDetail.contactForPrice")}</p>
               )}
               {avgRating > 0 && (
                 <div className="flex items-center gap-2 mt-2">
                   <div className="bg-white/20 text-white text-xs font-bold px-2 py-0.5 rounded">{avgRating.toFixed(1)}</div>
-                  <span className="text-xs opacity-80">{ratingLabel} · {property.reviews?.length ?? 0} reviews</span>
+                  <span className="text-xs opacity-80">{ratingLabel} · {property.reviews?.length ?? 0} {t("propertyDetail.reviews")}</span>
                 </div>
               )}
             </div>
@@ -906,31 +921,30 @@ const DataContainer = ({ data }: Props) => {
                   onClick={handleBookProperty}
                   disabled={!pricePerNight}
                 >
-                  {pricePerNight ? "Book Property" : "Price not set yet"}
+                <Button className="w-full mb-4 font-bold rounded-xl h-11" onClick={handleBookProperty} disabled={!pricePerNight}>
+                  {pricePerNight ? t("propertyDetail.bookProperty") : t("propertyDetail.priceNotSetYet")}
                 </Button>
               ) : (
                 <Button className="w-full mb-4 font-bold rounded-xl h-11" onClick={() => scrollTo("rooms")}>
-                  Check availability
+                  {t("propertyDetail.checkAvailability")}
                 </Button>
               )}
 
-              {/* Contact — show Admin contact from SiteConfig, not owner contact */}
               <AdminContactSection />
 
-              {/* Quick facts */}
               <div className="mt-4 pt-4 border-t border-border space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Quick facts</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t("propertyDetail.quickFacts")}</p>
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Rooms</span>
-                  <span className="font-medium">{property.rooms?.length ?? 0} types</span>
+                  <span className="text-muted-foreground">{t("nav.properties")}</span>
+                  <span className="font-medium">{t("propertyDetail.roomTypes", { count: property.rooms?.length ?? 0 })}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-muted-foreground">Facilities</span>
-                  <span className="font-medium">{property.facilities?.length ?? 0} listed</span>
+                  <span className="text-muted-foreground">{t("propertyDetail.facilitiesTitle")}</span>
+                  <span className="font-medium">{t("propertyDetail.facilitiesCount", { count: property.facilities?.length ?? 0 })}</span>
                 </div>
                 {property.location?.city && (
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">City</span>
+                    <span className="text-muted-foreground">{t("propertyDetail.city")}</span>
                     <span className="font-medium">{property.location.city}</span>
                   </div>
                 )}
@@ -947,7 +961,7 @@ const DataContainer = ({ data }: Props) => {
           <div className="absolute right-0 top-0 h-full w-full max-w-2xl bg-background shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="border-b border-border">
               <div className="flex items-center justify-between px-6 pt-4 pb-0">
-                <h2 className="text-lg font-bold">Property Information</h2>
+                <h2 className="text-lg font-bold">{t("propertyDetail.propertyInfo")}</h2>
                 <button onClick={() => setPanelTab(null)} className="p-2 hover:bg-muted rounded-full">
                   <X className="w-5 h-5" />
                 </button>
@@ -957,7 +971,7 @@ const DataContainer = ({ data }: Props) => {
                   <button key={tab} onClick={() => setPanelTab(tab)}
                     className={cn("px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors shrink-0",
                       panelTab === tab ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground")}>
-                    {tab}
+                    {PANEL_TAB_LABELS[tab] || tab}
                   </button>
                 ))}
               </div>
@@ -965,8 +979,8 @@ const DataContainer = ({ data }: Props) => {
             <div className="flex-1 overflow-y-auto p-6">
               {panelTab === "Facilities" && (
                 <div>
-                  <h3 className="text-lg font-bold mb-5">Services & Facilities</h3>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Facilities</p>
+                  <h3 className="text-lg font-bold mb-5">{t("propertyDetail.servicesAndFacilities")}</h3>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">{t("propertyDetail.facilitiesTitle")}</p>
                   {(property.facilities?.length > 0) ? (
                     <div className="grid grid-cols-2 gap-2 mb-6">
                       {property.facilities.map((f: any) => (
@@ -977,7 +991,7 @@ const DataContainer = ({ data }: Props) => {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground italic mb-6">No facilities available at the moment.</p>
+                    <p className="text-sm text-muted-foreground italic mb-6">{t("propertyDetail.noFacilitiesPanel")}</p>
                   )}
                   {(() => {
                     const allServices = Array.from(new Map(
@@ -985,7 +999,7 @@ const DataContainer = ({ data }: Props) => {
                     ).values());
                     return allServices.length > 0 ? (
                       <>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Room Services</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">{t("propertyDetail.roomServices")}</p>
                         <div className="flex flex-col gap-2">
                           {allServices.map((s: any) => (
                             <div key={s.id} className="flex items-center justify-between py-2.5 px-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
@@ -1013,7 +1027,7 @@ const DataContainer = ({ data }: Props) => {
                       </div>
                       <div>
                         <p className="font-bold">{ratingLabel}</p>
-                        <p className="text-sm text-muted-foreground">{property.reviews?.length ?? 0} verified reviews</p>
+                        <p className="text-sm text-muted-foreground">{t("propertyDetail.verifiedReviews", { count: property.reviews?.length ?? 0 })}</p>
                       </div>
                     </div>
                   )}
@@ -1022,28 +1036,28 @@ const DataContainer = ({ data }: Props) => {
               )}
               {panelTab === "Location" && (
                 <div>
-                  <h3 className="text-lg font-bold mb-4">Location</h3>
+                  <h3 className="text-lg font-bold mb-4">{t("propertyDetail.location")}</h3>
                   <PropertyDetails contact={property.contact} facilities={property.facilities as any} location={property.location} />
                 </div>
               )}
               {panelTab === "Trip" && (
                 <div>
-                  <h3 className="text-lg font-bold mb-4">Plan your journey</h3>
-                  <p className="text-sm text-muted-foreground mb-5">Book your ride in advance for a hassle-free trip</p>
+                  <h3 className="text-lg font-bold mb-4">{t("propertyDetail.planYourJourney")}</h3>
+                  <p className="text-sm text-muted-foreground mb-5">{t("propertyDetail.planJourneySubtitle")}</p>
                   <div className="space-y-4">
                     {[
-                      { icon: <Plane className="w-8 h-8 text-primary" />, title: "Book your airport transfer", desc: "Get to your hotel easily and securely", url: "https://www.ethiopianairlines.com/en-ke/", label: "Search flights" },
-                      { icon: <CarFront className="w-8 h-8 text-primary" />, title: "Rent a car", desc: "Find an ideal ride for your trip", url: "https://ride8294.com/", label: "Search cars" },
-                    ].map(({ icon, title, desc, url, label }) => (
-                      <div key={title} className="border border-border rounded-2xl p-5 flex flex-col justify-between hover:shadow-md transition-all bg-card">
+                      { icon: <Plane className="w-8 h-8 text-primary" />, titleKey: "propertyDetail.bookAirportTransfer", descKey: "propertyDetail.airportTransferDesc", url: "https://www.ethiopianairlines.com/en-ke/", labelKey: "propertyDetail.searchFlights" },
+                      { icon: <CarFront className="w-8 h-8 text-primary" />, titleKey: "propertyDetail.rentACar", descKey: "propertyDetail.rentCarDesc", url: "https://ride8294.com/", labelKey: "propertyDetail.searchCars" },
+                    ].map(({ icon, titleKey, descKey, url, labelKey }) => (
+                      <div key={titleKey} className="border border-border rounded-2xl p-5 flex flex-col justify-between hover:shadow-md transition-all bg-card">
                         <div className="flex items-start gap-4 mb-4">
                           <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">{icon}</div>
                           <div>
-                            <p className="font-semibold text-sm">{title}</p>
-                            <p className="text-xs text-muted-foreground mt-1">{desc}</p>
+                            <p className="font-semibold text-sm">{t(titleKey)}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{t(descKey)}</p>
                           </div>
                         </div>
-                        <Button variant="outline" size="sm" className="w-full rounded-full" onClick={() => window.open(url, "_blank")}>{label}</Button>
+                        <Button variant="outline" size="sm" className="w-full rounded-full" onClick={() => window.open(url, "_blank")}>{t(labelKey)}</Button>
                       </div>
                     ))}
                   </div>
