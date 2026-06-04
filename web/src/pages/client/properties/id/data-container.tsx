@@ -21,6 +21,7 @@ import { useFavorites } from "@/hooks/use-favorites";
 
 // Admin contact section — shows SiteConfig contact, not owner contact
 const AdminContactSection = () => {
+  const { t } = useTranslation();
   const [config, setConfig] = useState<any>(null);
   useEffect(() => {
     import("@/hooks/api").then(({ api }) => {
@@ -130,6 +131,7 @@ const DataContainer = ({ data }: Props) => {
     "Policies": t("propertyDetail.policies"),
     "Trip": t("propertyDetail.trip"),
   };
+  const ratingLabel =
     avgRating >= 4.5 ? t("propertyDetail.exceptional")
     : avgRating >= 4 ? t("propertyDetail.excellent")
     : avgRating >= 3.5 ? t("propertyDetail.veryGood")
