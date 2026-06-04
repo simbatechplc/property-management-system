@@ -41,9 +41,7 @@ export default function NotificationsPage() {
     fetchNotifications,
     markAsRead,
   } = useNotifications();
-  const [activeTab, setActiveTab] = useState<"all" | "unread" | "read">(
-    "all",
-  );
+  const [activeTab, setActiveTab] = useState<"all" | "unread" | "read">("all");
   const [selectedNotification, setSelectedNotification] = useState<any | null>(
     null,
   );
@@ -137,15 +135,15 @@ export default function NotificationsPage() {
                 {activeTab === "read"
                   ? "No read notifications"
                   : activeTab === "unread"
-                  ? "No unread notifications"
-                  : "No notifications yet"}
+                    ? "No unread notifications"
+                    : "No notifications yet"}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
                 {activeTab === "read"
                   ? "You have not opened any notifications yet."
                   : activeTab === "unread"
-                  ? "You’re all caught up."
-                  : "Notifications will appear here as they arrive."}
+                    ? "You’re all caught up."
+                    : "Notifications will appear here as they arrive."}
               </p>
             </Card>
           ) : (
@@ -173,7 +171,9 @@ export default function NotificationsPage() {
                             notification.action}
                         </span>
                         {!isRead && (
-                          <Badge variant="secondary" className="text-xs uppercase">
+                          <Badge
+                            variant="secondary"
+                            className="text-xs uppercase">
                             Unread
                           </Badge>
                         )}
