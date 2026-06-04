@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import {
+  useState,
+  useEffect,
+  createContext,
+  useContext,
+  ReactNode,
+} from "react";
 import { api } from "@/hooks/api";
 
 interface Notification {
@@ -20,7 +26,9 @@ interface NotificationContextType {
   deleteNotification: (id: string) => Promise<void>;
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+const NotificationContext = createContext<NotificationContextType | undefined>(
+  undefined,
+);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -44,7 +52,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     try {
       await api.patch(`/activities/notifications/${id}/read`);
       setNotifications((prev: Notification[]) =>
-        prev.map((n: Notification) => n.id === id ? { ...n, isRead: true } : n)
+        prev.map((n: Notification) =>
+          n.id === id ? { ...n, isRead: true } : n,
+        ),
       );
       setUnreadCount((prev: number) => Math.max(0, prev - 1));
     } catch (error) {
@@ -82,8 +92,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         fetchNotifications,
         markAsRead,
         deleteNotification,
-      }}
-    >
+      }}>
       {children}
     </NotificationContext.Provider>
   );
@@ -92,7 +101,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 export function useNotifications() {
   const context = useContext(NotificationContext);
   if (context === undefined) {
-    throw new Error("useNotifications must be used within a NotificationProvider");
+    throw new Error(
+      "useNotifications must be used within a NotificationProvider",
+    );
   }
   return context;
 }
