@@ -26,9 +26,7 @@ interface NotificationContextType {
   deleteNotification: (id: string) => Promise<void>;
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(
-  undefined,
-);
+const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -49,31 +47,45 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   };
 
   const markAsRead = async (id: string) => {
+    // Optimistically update UI immediately
+    setNotifications((prev: Notification[]) =>
+      prev.map((n: Notification) =>
+        n.id === id ? { ...n, isRead: true } : n
+      )
+    );
+    setUnreadCount((prev: number) => Math.max(0, prev - 1));
+    // Persist to backend
     try {
       await api.patch(`/activities/notifications/${id}/read`);
-      setNotifications((prev: Notification[]) =>
-        prev.map((n: Notification) =>
-          n.id === id ? { ...n, isRead: true } : n,
-        ),
-      );
-      setUnreadCount((prev: number) => Math.max(0, prev - 1));
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
+      // Revert on failure
+      setNotifications((prev: Notification[]) =>
+        prev.map((n: Notification) =>
+          n.id === id ? { ...n, isRead: false } : n
+        )
+      );
+      setUnreadCount((prev: number) => prev + 1);
     }
   };
 
   const deleteNotification = async (id: string) => {
+    const toDelete = notifications.find((n) => n.id === id);
+    // Optimistically remove from UI immediately
+    setNotifications((prev: Notification[]) => prev.filter((n) => n.id !== id));
+    if (toDelete && !toDelete.isRead) {
+      setUnreadCount((prev: number) => Math.max(0, prev - 1));
+    }
+    // Persist to backend
     try {
       await api.delete(`/activities/notifications/${id}`);
-      setNotifications((prev: Notification[]) => {
-        const toDelete = prev.find((n) => n.id === id);
-        if (toDelete && !toDelete.isRead) {
-          setUnreadCount((u) => Math.max(0, u - 1));
-        }
-        return prev.filter((n) => n.id !== id);
-      });
     } catch (error) {
       console.error("Failed to delete notification:", error);
+      // Revert on failure — add it back
+      if (toDelete) {
+        setNotifications((prev) => [toDelete, ...prev]);
+        if (!toDelete.isRead) setUnreadCount((prev) => prev + 1);
+      }
     }
   };
 
@@ -101,9 +113,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 export function useNotifications() {
   const context = useContext(NotificationContext);
   if (context === undefined) {
-    throw new Error(
-      "useNotifications must be used within a NotificationProvider",
-    );
+    throw new Error("useNotifications must be used within a NotificationProvider");
   }
   return context;
 }
