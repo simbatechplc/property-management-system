@@ -11,14 +11,16 @@ import { authClient } from "@/lib/auth-client";
 import { Avatar } from "../avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useClientAuth } from "@/hooks/use-client-auth";
+import { useTranslation } from "react-i18next";
+import { LanguageToggle } from "../language-toggle";
 
-const PROPERTY_TYPES = [
-  { label: "Hotels", value: "HOTEL", icon: <Hotel className="w-4 h-4" />, color: "text-blue-500" },
-  { label: "Guest Houses", value: "GUEST_HOUSE", icon: <Home className="w-4 h-4" />, color: "text-green-500" },
-  { label: "Apartments", value: "APARTMENT", icon: <Building2 className="w-4 h-4" />, color: "text-purple-500" },
-  { label: "Resorts", value: "RESORT", icon: <TreePine className="w-4 h-4" />, color: "text-emerald-500" },
-  { label: "Villas", value: "VILLA", icon: <Tent className="w-4 h-4" />, color: "text-orange-500" },
-  { label: "Hostels", value: "HOSTEL", icon: <Warehouse className="w-4 h-4" />, color: "text-pink-500" },
+const PROPERTY_TYPE_KEYS = [
+  { key: "hotels", value: "HOTEL", icon: <Hotel className="w-4 h-4" />, color: "text-blue-500" },
+  { key: "guestHouses", value: "GUEST_HOUSE", icon: <Home className="w-4 h-4" />, color: "text-green-500" },
+  { key: "apartments", value: "APARTMENT", icon: <Building2 className="w-4 h-4" />, color: "text-purple-500" },
+  { key: "resorts", value: "RESORT", icon: <TreePine className="w-4 h-4" />, color: "text-emerald-500" },
+  { key: "villas", value: "VILLA", icon: <Tent className="w-4 h-4" />, color: "text-orange-500" },
+  { key: "hostels", value: "HOSTEL", icon: <Warehouse className="w-4 h-4" />, color: "text-pink-500" },
 ];
 
 const NAV_LINKS = [
@@ -29,14 +31,20 @@ const NAV_LINKS = [
 ];
 
 export function Header() {
+  const { t } = useTranslation();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [propDropdown, setPropDropdown] = useState(false);
 
+  const PROPERTY_TYPES = PROPERTY_TYPE_KEYS.map((p) => ({
+    ...p,
+    label: t(`propertyTypes.${p.key}`),
+  }));
+
   const selectedType = new URLSearchParams(location.search).get("type");
   const activePropertyLabel = selectedType
-    ? (PROPERTY_TYPES.find((t) => t.value === selectedType)?.label ?? "Properties")
-    : "Properties";
+    ? (PROPERTY_TYPES.find((t) => t.value === selectedType)?.label ?? t("nav.properties"))
+    : t("nav.properties");
   const dropRef = useRef<HTMLDivElement>(null);
   const { data, isPending } = authClient.useSession();
   const { signOut, isAuthenticated } = useClientAuth();
@@ -86,14 +94,14 @@ export function Header() {
           </div>
         </div>
         <button className="w-full text-start text-sm px-3 py-2 rounded-lg flex items-center gap-2.5 hover:bg-muted transition-colors" onClick={() => navigate("/account")}>
-          <Settings className="w-4 h-4 text-muted-foreground" /> Account settings
+          <Settings className="w-4 h-4 text-muted-foreground" /> {t("nav.accountSettings")}
         </button>
         <button className="w-full text-start text-sm px-3 py-2 rounded-lg flex items-center gap-2.5 hover:bg-muted transition-colors" onClick={() => navigate("/account/bookings")}>
-          <Bookmark className="w-4 h-4 text-muted-foreground" /> My bookings
+          <Bookmark className="w-4 h-4 text-muted-foreground" /> {t("nav.myBookings")}
         </button>
         <div className="border-t my-1" />
         <button className="w-full text-start text-sm px-3 py-2 rounded-lg flex items-center gap-2.5 hover:bg-red-50 dark:hover:bg-red-950/30 text-destructive transition-colors" onClick={() => signOut()}>
-          <LogOut className="w-4 h-4" /> Sign out
+          <LogOut className="w-4 h-4" /> {t("nav.signOut")}
         </button>
       </PopoverContent>
     </Popover>
@@ -140,7 +148,7 @@ export function Header() {
                 className={cn("px-3 py-1.5 rounded-full text-sm font-medium transition-all",
                   isActive("/") ? "bg-white/20 text-[#c9a227]" : "text-[#c9a227]/80 hover:text-[#c9a227] hover:bg-white/10"
                 )}>
-                Home
+                {t("nav.home")}
               </Link>
 
               {/* Properties dropdown */}
@@ -161,25 +169,25 @@ export function Header() {
                       <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
                         <Building2 className="w-3.5 h-3.5 text-primary" />
                       </div>
-                      All Properties
+                      {t("nav.allProperties")}
                     </Link>
                     {/* Private / Shared access type filters */}
                     <div className="px-3 py-2 flex gap-2 border-b border-border">
                       <Link to="/properties?accessType=PRIVATE" onClick={() => setPropDropdown(false)}
                         className="flex-1 text-center text-xs font-semibold px-2 py-1.5 rounded-lg bg-muted hover:bg-primary/10 hover:text-primary transition-colors">
-                        🏡 Private
+                        {t("nav.private")}
                       </Link>
                       <Link to="/properties?accessType=SHARED" onClick={() => setPropDropdown(false)}
                         className="flex-1 text-center text-xs font-semibold px-2 py-1.5 rounded-lg bg-muted hover:bg-primary/10 hover:text-primary transition-colors">
-                        🏨 Shared
+                        {t("nav.shared")}
                       </Link>
                     </div>
                     <div className="p-1.5">
-                      {PROPERTY_TYPES.map((t) => (
-                        <Link key={t.value} to={`/properties?type=${t.value}`} onClick={() => setPropDropdown(false)}
+                      {PROPERTY_TYPES.map((pt) => (
+                        <Link key={pt.value} to={`/properties?type=${pt.value}`} onClick={() => setPropDropdown(false)}
                           className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-foreground/80 hover:bg-muted hover:text-foreground transition-colors">
-                          <span className={t.color}>{t.icon}</span>
-                          {t.label}
+                          <span className={pt.color}>{pt.icon}</span>
+                          {pt.label}
                         </Link>
                       ))}
                     </div>
@@ -191,43 +199,42 @@ export function Header() {
                 className={cn("flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-all",
                   isActive("/nearby") ? "bg-white/20 text-[#c9a227]" : "text-[#c9a227]/80 hover:text-[#c9a227] hover:bg-white/10"
                 )}>
-                <MapPin className="w-3.5 h-3.5" /> Nearby
+                <MapPin className="w-3.5 h-3.5" /> {t("nav.nearby")}
               </Link>
 
               <Link to="/about"
                 className={cn("px-3 py-1.5 rounded-full text-sm font-medium transition-all",
                   isActive("/about") ? "bg-white/20 text-[#c9a227]" : "text-[#c9a227]/80 hover:text-[#c9a227] hover:bg-white/10"
                 )}>
-                About
+                {t("nav.about")}
               </Link>
-
-              {/* Register tab hidden — kept for future use */}
-              {/* <Link to="/register" className="...">Register</Link> */}
             </nav>
           </div>
 
           {/* Right side */}
           <div className="hidden md:flex items-center gap-2">
+            <LanguageToggle />
             <ModeToggle />
             {isPending ? null : data?.user ? (
               <>
                 <button onClick={() => navigate("/account/bookings")}
                   className="flex items-center gap-1.5 text-sm text-[#c9a227]/80 hover:text-[#c9a227] px-3 py-2 rounded-full hover:bg-white/10 transition-colors">
                   <Heart className="w-4 h-4" />
-                  <span className="hidden lg:inline">Saved</span>
+                  <span className="hidden lg:inline">{t("nav.saved")}</span>
                 </button>
                 <UserMenu />
               </>
             ) : (
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="sm" className="rounded-full text-white hover:bg-white/10 hover:text-white" onClick={() => navigate("/auth/register")}>Register</Button>
-                <Button size="sm" className="rounded-full px-5 bg-[#c9a227] hover:bg-[#b8911f] text-[#1a4a2e] font-bold border-0" onClick={() => navigate("/auth/signin")}>Sign in</Button>
+                <Button size="sm" className="rounded-full px-5 bg-[#c9a227] hover:bg-[#b8911f] text-[#1a4a2e] font-bold border-0" onClick={() => navigate("/auth/signin")}>{t("nav.signIn")}</Button>
               </div>
             )}
           </div>
 
           {/* Mobile */}
           <div className="md:hidden flex items-center gap-2">
+            <LanguageToggle />
             <ModeToggle />
             {data?.user && <UserMenu />}
             <Sheet open={open} onOpenChange={setOpen}>
@@ -247,36 +254,40 @@ export function Header() {
                     </SheetTitle>
                   </SheetHeader>
                   <div className="flex flex-col gap-0.5">
-                    {[{ href: "/", label: "Home" }, { href: "/nearby", label: "Nearby" }, { href: "/about", label: "About" }].map(({ href, label }) => (
+                    {[
+                      { href: "/", label: t("nav.home") },
+                      { href: "/nearby", label: t("nav.nearby") },
+                      { href: "/about", label: t("nav.about") },
+                    ].map(({ href, label }) => (
                       <Link key={href} to={href} onClick={() => setOpen(false)}
                         className={cn("text-sm font-medium px-3 py-2.5 rounded-xl transition-colors", isActive(href) ? "text-primary bg-primary/5" : "text-foreground hover:bg-muted")}>
                         {label}
                       </Link>
                     ))}
-                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-2">Property Types</div>
-                    <Link to="/properties" onClick={() => setOpen(false)} className="text-sm font-medium px-3 py-2 rounded-xl text-primary hover:bg-primary/5">All Properties</Link>
+                    <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-2">{t("nav.properties")}</div>
+                    <Link to="/properties" onClick={() => setOpen(false)} className="text-sm font-medium px-3 py-2 rounded-xl text-primary hover:bg-primary/5">{t("nav.allProperties")}</Link>
                     <div className="flex gap-2 px-3 py-1">
                       <Link to="/properties?accessType=PRIVATE" onClick={() => setOpen(false)}
                         className="flex-1 text-center text-xs font-semibold px-2 py-1.5 rounded-lg bg-muted hover:bg-primary/10 hover:text-primary transition-colors">
-                        🏡 Private
+                        {t("nav.private")}
                       </Link>
                       <Link to="/properties?accessType=SHARED" onClick={() => setOpen(false)}
                         className="flex-1 text-center text-xs font-semibold px-2 py-1.5 rounded-lg bg-muted hover:bg-primary/10 hover:text-primary transition-colors">
-                        🏨 Shared
+                        {t("nav.shared")}
                       </Link>
                     </div>
-                    {PROPERTY_TYPES.map((t) => (
-                      <Link key={t.value} to={`/properties?type=${t.value}`} onClick={() => setOpen(false)}
+                    {PROPERTY_TYPES.map((pt) => (
+                      <Link key={pt.value} to={`/properties?type=${pt.value}`} onClick={() => setOpen(false)}
                         className="text-sm px-3 py-2 rounded-xl text-foreground/70 hover:bg-muted hover:text-foreground flex items-center gap-2.5 ml-2">
-                        <span className={t.color}>{t.icon}</span>{t.label}
+                        <span className={pt.color}>{pt.icon}</span>{pt.label}
                       </Link>
                     ))}
                   </div>
                 </div>
                 {!isAuthenticated && (
                   <div className="flex flex-col gap-2">
-                    <Button variant="outline" className="w-full rounded-xl" onClick={() => { navigate("/auth/register"); setOpen(false); }}>Register</Button>
-                    <Button className="w-full rounded-xl" onClick={() => { navigate("/auth/signin"); setOpen(false); }}><User className="h-4 w-4 mr-2" /> Sign in</Button>
+                    <Button variant="outline" className="w-full rounded-xl" onClick={() => { navigate("/auth/register"); setOpen(false); }}>{t("auth.register")}</Button>
+                    <Button className="w-full rounded-xl" onClick={() => { navigate("/auth/signin"); setOpen(false); }}><User className="h-4 w-4 mr-2" /> {t("nav.signIn")}</Button>
                   </div>
                 )}
               </SheetContent>

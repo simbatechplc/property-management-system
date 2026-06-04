@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { MapPin, Phone, Mail, Youtube, Instagram, Send, Globe } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api } from "@/hooks/api";
 
 const GOLD = "#c9a227";
@@ -19,6 +20,7 @@ interface SiteConfig {
 }
 
 export function Footer() {
+  const { t } = useTranslation();
   const LOGO_URL = "https://res.cloudinary.com/dmhsqmdbc/image/upload/v1776093694/bete_uploads/nvducfh9nbyixyatxrp9.jpg";
   const [config, setConfig] = useState<SiteConfig>({ siteName: "Kuru Rent", logoUrl: LOGO_URL, tagline: "Guesthouse · Apartment · Villa" });
 
@@ -36,11 +38,27 @@ export function Footer() {
     { href: config.telegram, icon: <Send className="w-4 h-4" />, label: "Telegram" },
     { href: config.instagram, icon: <Instagram className="w-4 h-4" />, label: "Instagram" },
     ...(config.extraSocials || []).filter(s => s.url).map(s => ({
-      href: s.url,
-      icon: <Globe className="w-4 h-4" />,
-      label: s.label || "Link",
+      href: s.url, icon: <Globe className="w-4 h-4" />, label: s.label || "Link",
     })),
   ].filter(s => s.href);
+
+  const propertyTypeKeys = [
+    { key: "hotels", value: "HOTELS" },
+    { key: "guestHouses", value: "GUEST_HOUSES" },
+    { key: "apartments", value: "APARTMENTS" },
+    { key: "resorts", value: "RESORTS" },
+    { key: "villas", value: "VILLAS" },
+    { key: "hostels", value: "HOSTELS" },
+  ];
+
+  const quickLinks = [
+    { labelKey: "footer.home", href: "/" },
+    { labelKey: "footer.allProperties", href: "/properties" },
+    { labelKey: "footer.nearby", href: "/nearby" },
+    { labelKey: "footer.aboutUs", href: "/about" },
+    { labelKey: "footer.registerProperty", href: "/register" },
+    { labelKey: "footer.myBookings", href: "/account/bookings" },
+  ];
 
   return (
     <footer className="bg-[#1a4a2e] mt-16" style={{ color: GOLD }}>
@@ -66,8 +84,7 @@ export function Footer() {
                 {socialLinks.map(({ href, icon, label }) => (
                   <a key={label} href={href} target="_blank" rel="noopener noreferrer"
                     className="w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0"
-                    style={{ backgroundColor: "#c9a22722", color: GOLD }}
-                    aria-label={label}>
+                    style={{ backgroundColor: "#c9a22722", color: GOLD }} aria-label={label}>
                     {icon}
                   </a>
                 ))}
@@ -77,12 +94,14 @@ export function Footer() {
 
           {/* Property Types */}
           <div>
-            <h3 className="font-semibold mb-4" style={{ color: GOLD }}>Property Types</h3>
+            <h3 className="font-semibold mb-4" style={{ color: GOLD }}>{t("footer.propertyTypes")}</h3>
             <ul className="space-y-2 text-sm">
-              {["Hotels", "Guest Houses", "Apartments", "Resorts", "Villas", "Hostels"].map((t) => (
-                <li key={t}>
-                  <Link to={`/properties?type=${t.toUpperCase().replace(" ", "_")}`}
-                    className="transition-colors hover:opacity-80" style={{ color: `${GOLD}cc` }}>{t}</Link>
+              {propertyTypeKeys.map(({ key, value }) => (
+                <li key={key}>
+                  <Link to={`/properties?type=${value}`}
+                    className="transition-colors hover:opacity-80" style={{ color: `${GOLD}cc` }}>
+                    {t(`propertyTypes.${key}`)}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -90,18 +109,13 @@ export function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h3 className="font-semibold mb-4" style={{ color: GOLD }}>Quick Links</h3>
+            <h3 className="font-semibold mb-4" style={{ color: GOLD }}>{t("footer.quickLinks")}</h3>
             <ul className="space-y-2 text-sm">
-              {[
-                { label: "Home", href: "/" },
-                { label: "All Properties", href: "/properties" },
-                { label: "Nearby", href: "/nearby" },
-                { label: "About Us", href: "/about" },
-                { label: "Register Property", href: "/register" },
-                { label: "My Bookings", href: "/account/bookings" },
-              ].map(({ label, href }) => (
+              {quickLinks.map(({ labelKey, href }) => (
                 <li key={href}>
-                  <Link to={href} className="transition-colors hover:opacity-80" style={{ color: `${GOLD}cc` }}>{label}</Link>
+                  <Link to={href} className="transition-colors hover:opacity-80" style={{ color: `${GOLD}cc` }}>
+                    {t(labelKey)}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -109,7 +123,7 @@ export function Footer() {
 
           {/* Contact */}
           <div>
-            <h3 className="font-semibold mb-4" style={{ color: GOLD }}>Contact Us</h3>
+            <h3 className="font-semibold mb-4" style={{ color: GOLD }}>{t("footer.contactUs")}</h3>
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 shrink-0 mt-0.5" style={{ color: GOLD }} />
@@ -132,11 +146,11 @@ export function Footer() {
         </div>
 
         <div className="border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs" style={{ borderColor: `${GOLD}33`, color: `${GOLD}99` }}>
-          <p>© {new Date().getFullYear()} {config.siteName || "Kuru Rent"}. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} {config.siteName || "Kuru Rent"}. {t("footer.allRightsReserved")}</p>
           <div className="flex items-center gap-4">
-            <a href="#" className="hover:opacity-80 transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:opacity-80 transition-colors">Terms of Service</a>
-            <a href="#" className="hover:opacity-80 transition-colors">Cookie Policy</a>
+            <a href="#" className="hover:opacity-80 transition-colors">{t("footer.privacyPolicy")}</a>
+            <a href="#" className="hover:opacity-80 transition-colors">{t("footer.termsOfService")}</a>
+            <a href="#" className="hover:opacity-80 transition-colors">{t("footer.cookiePolicy")}</a>
           </div>
         </div>
       </div>

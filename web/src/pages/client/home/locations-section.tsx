@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api } from "@/hooks/api";
 import SectionHeader from "./_components/section-header";
 
@@ -20,6 +21,7 @@ const ONE_SET = locationDefs.length * ITEM_W;
 const FALLBACK = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=600&fit=crop";
 
 const LocationsSection = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [countMap, setCountMap] = useState<Record<string, number>>({});
   const trackRef = useRef<HTMLDivElement>(null);
@@ -61,7 +63,7 @@ const LocationsSection = () => {
 
   return (
     <section className="c-px pt-20 md:pt-24 pb-10 overflow-hidden">
-      <SectionHeader title="Popular Locations" />
+      <SectionHeader title={t("locations.title")} />
       <div
         className="relative overflow-hidden"
         style={{ maskImage: "linear-gradient(to right, transparent, black 3%, black 97%, transparent)" }}
@@ -92,7 +94,7 @@ const LocationsSection = () => {
                 <div className="absolute bottom-0 left-0 right-0 p-4">
                   <h3 className="text-white font-bold text-base">{loc.title}</h3>
                   <p className="text-white/70 text-xs mt-0.5">
-                    {count !== undefined ? `${count} propert${count === 1 ? "y" : "ies"}` : "Explore"}
+                    {count !== undefined ? t("locations.property", { count }) : t("locations.explore")}
                   </p>
                 </div>
               </div>
