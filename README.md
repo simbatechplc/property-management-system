@@ -4,8 +4,8 @@ A full-stack property booking and management platform for hotels, guest houses, 
 
 <div align="center">
 
-[![Client Site](https://img.shields.io/badge/🌐%20Client%20Site-Live%20Demo-4CAF50?style=for-the-badge)](https://property-management-system-cyan.vercel.app)
-[![Admin Panel](https://img.shields.io/badge/🛠️%20Admin%20Panel-Live%20Demo-1a4a2e?style=for-the-badge)](https://property-management-system-s61h.vercel.app)
+[![Client Site](https://img.shields.io/badge/🌐%20Client%20Site-Live%20Demo-4CAF50?style=for-the-badge)](https://property-management-system-gules.vercel.app/)
+[![Admin Panel](https://img.shields.io/badge/🛠️%20Admin%20Panel-Live%20Demo-1a4a2e?style=for-the-badge)](https://property-management-system-admin.vercel.app)
 
 </div>
 
