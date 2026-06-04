@@ -197,7 +197,7 @@ const DataContainer = ({ data }: Props) => {
                   </button>
                 )}
                 <button className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border-2 border-primary text-primary text-xs sm:text-sm font-medium">
-                  <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Property Images</span><span className="sm:hidden">Photos</span>
+                  <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">{t("propertyDetail.propertyImages")}</span><span className="sm:hidden">{t("propertyDetail.photos")}</span>
                 </button>
                 <button onClick={() => { setGalleryOpen(false); setGalleryStartIdx(0); setGalleryFilter("all"); }} className="ml-auto p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full">
                   <X className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -916,11 +916,6 @@ const DataContainer = ({ data }: Props) => {
 
             <div className="p-5">
               {isPrivate ? (
-                <Button
-                  className="w-full mb-4 font-bold rounded-xl h-11"
-                  onClick={handleBookProperty}
-                  disabled={!pricePerNight}
-                >
                 <Button className="w-full mb-4 font-bold rounded-xl h-11" onClick={handleBookProperty} disabled={!pricePerNight}>
                   {pricePerNight ? t("propertyDetail.bookProperty") : t("propertyDetail.priceNotSetYet")}
                 </Button>
