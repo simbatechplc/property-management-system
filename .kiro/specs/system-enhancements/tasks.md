@@ -7,7 +7,7 @@ Implement all 11 system enhancements across the backend (Express/TypeScript/Pris
 ## Tasks
 
 - [x] 1. Database schema migrations and Prisma model updates
-  - Add `bankName`, `bankAccountHolder`, `bankAccountNumber`, `bankInstructions` fields to `SiteConfig` model in `backend/prisma/models/`
+  - Add `bankname`, `bankAccountHolder`, `bankAccountNumber`, `bankInstructions` fields to `SiteConfig` model in `backend/prisma/models/`
   - Add `FurnishingStatus` enum and optional `furnishingStatus` field to `Property` model
   - Add `PaymentSubmission` model and `PaymentSubmissionStatus` enum to `backend/prisma/models/payment.schema.prisma`
   - Add `paymentSubmission PaymentSubmission?` relation to `Booking` model
