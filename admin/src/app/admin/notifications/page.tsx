@@ -1,270 +1,282 @@
 "use client";
 
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { useNotifications } from "@/hooks/use-notifications";
+import LoaderState from "@/components/shared/loader-state";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, ChevronRight, Clock, RefreshCw, Trash } from "lucide-react";
-import { useNotifications } from "@/hooks/use-notifications";
 import { cn } from "@/lib/utils";
-import LoaderState from "@/components/shared/loader-state";
+import {
+  Bell, BellRing, RefreshCw, Trash2, CheckCheck, ChevronRight,
+  Calendar, Shield, Building2, CreditCard, UserCheck, X, Clock,
+  AlertTriangle, CheckCircle2, XCircle, Info, FileText, MessageSquare,
+} from "lucide-react";
+import { formatDistanceToNow, format } from "date-fns";
 
-const ACTION_LABELS: Record<string, string> = {
-  BOOKED: "New Booking",
-  APPROVED_BOOKING: "Booking Approved",
-  REJECTED_BOOKING: "Booking Rejected",
-  CANCELLED_BOOKING: "Booking Cancelled",
-  CREATE_GUEST_HOUSE: "New Property",
-  REGISTRATION_REQUEST: "New Registration",
+// Action type config with icons, colors and labels
+const ACTION_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string; dot: string }> = {
+  BOOKED: { label: "New Booking", icon: <Calendar className="w-4 h-4" />, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/30", dot: "bg-blue-500" },
+  APPROVED_BOOKING: { label: "Booking Approved", icon: <CheckCircle2 className="w-4 h-4" />, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30", dot: "bg-emerald-500" },
+  REJECTED_BOOKING: { label: "Booking Rejected", icon: <XCircle className="w-4 h-4" />, color: "text-red-600 dark:text-red-400", bg: "bg-red-100 dark:bg-red-900/30", dot: "bg-red-500" },
+  CANCELLED_BOOKING: { label: "Booking Cancelled", icon: <AlertTriangle className="w-4 h-4" />, color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-900/30", dot: "bg-orange-500" },
+  CREATE_GUEST_HOUSE: { label: "New Property", icon: <Building2 className="w-4 h-4" />, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-900/30", dot: "bg-purple-500" },
+  REGISTRATION_REQUEST: { label: "New Registration", icon: <UserCheck className="w-4 h-4" />, color: "text-yellow-600 dark:text-yellow-400", bg: "bg-yellow-100 dark:bg-yellow-900/30", dot: "bg-yellow-500" },
+  PAYMENT_SUCCESS: { label: "Payment Received", icon: <CreditCard className="w-4 h-4" />, color: "text-green-600 dark:text-green-400", bg: "bg-green-100 dark:bg-green-900/30", dot: "bg-green-500" },
+  PAYMENT_FAILED: { label: "Payment Failed", icon: <CreditCard className="w-4 h-4" />, color: "text-red-600 dark:text-red-400", bg: "bg-red-100 dark:bg-red-900/30", dot: "bg-red-500" },
+  REPORT_SUBMITTED: { label: "Report Submitted", icon: <FileText className="w-4 h-4" />, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/30", dot: "bg-blue-500" },
+  DEFAULT: { label: "Notification", icon: <Info className="w-4 h-4" />, color: "text-gray-600 dark:text-gray-400", bg: "bg-gray-100 dark:bg-gray-900/30", dot: "bg-gray-400" },
 };
 
-const ACTION_COLORS: Record<string, string> = {
-  BOOKED: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  APPROVED_BOOKING:
-    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  REJECTED_BOOKING:
-    "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  CANCELLED_BOOKING:
-    "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-  CREATE_GUEST_HOUSE:
-    "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-  REGISTRATION_REQUEST:
-    "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-};
+function getActionConfig(action: string) {
+  return ACTION_CONFIG[action] || ACTION_CONFIG.DEFAULT;
+}
+
+type Tab = "all" | "unread" | "read";
 
 export default function NotificationsPage() {
-  const {
-    notifications,
-    unreadCount,
-    loading,
-    fetchNotifications,
-    markAsRead,
-    deleteNotification,
-  } = useNotifications();
-  const [activeTab, setActiveTab] = useState<"all" | "unread" | "read">("all");
-  const [selectedNotificationId, setSelectedNotificationId] = useState<
-    string | null
-  >(null);
+  const { notifications, unreadCount, loading, fetchNotifications, markAsRead, deleteNotification } = useNotifications();
+  const [activeTab, setActiveTab] = useState<Tab>("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const handleMarkAsRead = async (notificationId: string) => {
-    try {
-      await markAsRead(notificationId);
-      setActiveTab("read");
-    } catch (error) {
-      console.error("Failed to mark notification as read:", error);
-    }
-  };
+  const selectedNotification = notifications.find(n => n.id === selectedId);
 
-  const handleNotificationClick = async (notification: any) => {
-    setSelectedNotificationId(notification.id);
-    if (!notification.isRead) {
-      await handleMarkAsRead(notification.id);
-    } else {
-      setActiveTab("read");
-    }
-  };
-
-  const handleCloseDetail = () => {
-    setSelectedNotificationId(null);
-  };
-
-  const filteredNotifications = notifications.filter((notification) => {
-    if (activeTab === "unread") {
-      return !notification.isRead;
-    }
-    if (activeTab === "read") {
-      return Boolean(notification.isRead);
-    }
+  const filtered = notifications.filter(n => {
+    if (activeTab === "unread") return !n.isRead;
+    if (activeTab === "read") return Boolean(n.isRead);
     return true;
   });
+
+  const handleNotificationClick = async (notification: any) => {
+    setSelectedId(notification.id);
+    if (!notification.isRead) {
+      await markAsRead(notification.id);
+    }
+  };
+
+  const handleDelete = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setDeletingId(id);
+    await deleteNotification(id);
+    if (selectedId === id) setSelectedId(null);
+    setDeletingId(null);
+  };
+
+  const tabs: { key: Tab; label: string; count?: number }[] = [
+    { key: "all", label: "All", count: notifications.length },
+    { key: "unread", label: "Unread", count: unreadCount },
+    { key: "read", label: "Read", count: notifications.filter(n => n.isRead).length },
+  ];
 
   if (loading && notifications.length === 0) return <LoaderState />;
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+      <div className="max-w-6xl mx-auto px-4 py-6 sm:px-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-primary/10">
-              <Bell className="h-5 w-5 text-primary" />
+            <div className="relative">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <BellRing className="w-6 h-6 text-primary" />
+              </div>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </div>
             <div>
-              <h1 className="text-xl font-bold">Notifications</h1>
+              <h1 className="text-2xl font-bold">Notifications</h1>
               <p className="text-sm text-muted-foreground">
-                {unreadCount} unread notification{unreadCount !== 1 ? "s" : ""}
+                {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}` : "All caught up!"}
               </p>
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchNotifications}
-            className="gap-2">
-            <RefreshCw className="h-3.5 w-3.5" /> Refresh
+          <Button variant="outline" size="sm" onClick={fetchNotifications} className="gap-2 self-start sm:self-auto">
+            <RefreshCw className="w-3.5 h-3.5" /> Refresh
           </Button>
         </div>
 
-        <Tabs
-          value={activeTab}
-          onValueChange={(value) =>
-            setActiveTab(value as "all" | "unread" | "read")
-          }
-          className="mb-6">
-          <TabsList className="grid w-full grid-cols-3 gap-2 rounded-full bg-muted p-1 text-sm">
-            <TabsTrigger
-              value="all"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full">
-              All
-            </TabsTrigger>
-            <TabsTrigger
-              value="unread"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full">
-              Unread
-            </TabsTrigger>
-            <TabsTrigger
-              value="read"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full">
-              Read
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        {/* Tabs */}
+        <div className="flex gap-1 p-1 bg-muted rounded-xl mb-6 w-full sm:w-auto">
+          {tabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={cn(
+                "flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                activeTab === tab.key
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {tab.label}
+              {tab.count !== undefined && tab.count > 0 && (
+                <span className={cn(
+                  "min-w-[1.25rem] h-5 rounded-full text-[10px] font-bold flex items-center justify-center px-1",
+                  activeTab === tab.key
+                    ? tab.key === "unread" ? "bg-red-500 text-white" : "bg-primary/20 text-primary"
+                    : "bg-muted-foreground/20 text-muted-foreground"
+                )}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
 
-        <div className="space-y-3">
-          {filteredNotifications.length === 0 ? (
-            <Card className="p-16 text-center">
-              <Bell className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-30" />
-              <p className="text-muted-foreground font-medium">
-                {activeTab === "read"
-                  ? "No read notifications"
-                  : activeTab === "unread"
-                    ? "No unread notifications"
-                    : "No notifications yet"}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {activeTab === "read"
-                  ? "You have not opened any notifications yet."
-                  : activeTab === "unread"
-                    ? "You’re all caught up."
-                    : "Notifications will appear here as they arrive."}
-              </p>
-            </Card>
-          ) : (
-            filteredNotifications.map((notification: any) => {
-              const isRead = Boolean(notification.isRead);
+        {/* Content */}
+        <div className={cn("grid gap-6", selectedNotification ? "grid-cols-1 lg:grid-cols-[1fr_400px]" : "grid-cols-1")}>
+          {/* Notification List */}
+          <div className="space-y-2">
+            {filtered.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
+                  <Bell className="w-8 h-8 text-muted-foreground opacity-40" />
+                </div>
+                <p className="font-semibold text-foreground mb-1">
+                  {activeTab === "read" ? "No read notifications" : activeTab === "unread" ? "You're all caught up!" : "No notifications yet"}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {activeTab === "unread" ? "No unread notifications at this time." : "Notifications will appear here as they arrive."}
+                </p>
+              </div>
+            ) : (
+              filtered.map((notification: any) => {
+                const config = getActionConfig(notification.action);
+                const isRead = Boolean(notification.isRead);
+                const isSelected = selectedId === notification.id;
+                const isDeleting = deletingId === notification.id;
 
-              return (
-                <Card
-                  key={notification.id}
-                  className={cn(
-                    "group overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md",
-                    !isRead && "border-primary/30 bg-primary/5",
-                  )}
-                  onClick={() => handleNotificationClick(notification)}>
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span
-                          className={cn(
-                            "text-xs font-medium px-2 py-0.5 rounded-full",
-                            ACTION_COLORS[notification.action] ||
-                              "bg-gray-100 text-gray-700",
-                          )}>
-                          {ACTION_LABELS[notification.action] ||
-                            notification.action}
+                return (
+                  <div
+                    key={notification.id}
+                    onClick={() => handleNotificationClick(notification)}
+                    className={cn(
+                      "group relative flex items-start gap-4 p-4 rounded-2xl border cursor-pointer transition-all duration-200",
+                      "hover:shadow-md hover:-translate-y-0.5",
+                      isSelected ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card hover:border-primary/30",
+                      !isRead && !isSelected && "border-l-4 border-l-primary bg-primary/[0.02]",
+                      isDeleting && "opacity-50 pointer-events-none"
+                    )}
+                  >
+                    {/* Icon */}
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5", config.bg)}>
+                      <span className={config.color}>{config.icon}</span>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={cn("text-xs font-semibold px-2 py-0.5 rounded-full", config.bg, config.color)}>
+                            {config.label}
+                          </span>
+                          {!isRead && (
+                            <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+                          {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
                         </span>
-                        {!isRead && (
-                          <Badge
-                            variant="secondary"
-                            className="text-xs uppercase">
-                            Unread
-                          </Badge>
-                        )}
                       </div>
-                      <p className="text-sm text-foreground mb-1">
-                        {notification.description}
-                      </p>
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                        <span className="inline-flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {new Date(notification.timestamp).toLocaleString()}
-                        </span>
-                        <Badge variant="outline" className="text-xs uppercase">
-                          {isRead ? "Read" : "New"}
-                        </Badge>
+                      <p className="text-sm text-foreground line-clamp-2 mb-2">{notification.description}</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Clock className="w-3 h-3" />
+                        {format(new Date(notification.timestamp), "MMM d, yyyy 'at' h:mm a")}
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleNotificationClick(notification);
-                        }}
-                        className="h-8 w-8">
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          await deleteNotification(notification.id);
-                          if (selectedNotificationId === notification.id) {
-                            handleCloseDetail();
-                          }
-                        }}
-                        className="h-8 w-8 text-destructive">
-                        <Trash className="h-4 w-4" />
-                      </Button>
+
+                    {/* Actions */}
+                    <div className="flex flex-col items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleNotificationClick(notification); }}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-muted transition-colors"
+                        title="View details"
+                      >
+                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                      <button
+                        onClick={(e) => handleDelete(notification.id, e)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
+                        title="Delete notification"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Detail Panel */}
+          {selectedNotification && (
+            <div className="sticky top-6 h-fit">
+              <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+                {/* Detail Header */}
+                <div className={cn(
+                  "flex items-center justify-between px-5 py-4 border-b border-border",
+                  getActionConfig(selectedNotification.action).bg
+                )}>
+                  <div className="flex items-center gap-2">
+                    <span className={getActionConfig(selectedNotification.action).color}>
+                      {getActionConfig(selectedNotification.action).icon}
+                    </span>
+                    <span className={cn("text-sm font-semibold", getActionConfig(selectedNotification.action).color)}>
+                      {getActionConfig(selectedNotification.action).label}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setSelectedId(null)}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Detail Body */}
+                <div className="p-5 space-y-4">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Description</p>
+                    <p className="text-sm text-foreground leading-relaxed">{selectedNotification.description}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-xl bg-muted/50">
+                      <p className="text-xs text-muted-foreground mb-1">Date & Time</p>
+                      <p className="text-xs font-medium">{format(new Date(selectedNotification.timestamp), "MMM d, yyyy")}</p>
+                      <p className="text-xs text-muted-foreground">{format(new Date(selectedNotification.timestamp), "h:mm a")}</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-muted/50">
+                      <p className="text-xs text-muted-foreground mb-1">Status</p>
+                      <div className="flex items-center gap-1.5">
+                        <span className={cn(
+                          "w-2 h-2 rounded-full",
+                          selectedNotification.isRead ? "bg-gray-400" : "bg-green-500"
+                        )} />
+                        <p className="text-xs font-medium">{selectedNotification.isRead ? "Read" : "Unread"}</p>
+                      </div>
                     </div>
                   </div>
 
-                  {selectedNotificationId === notification.id && (
-                    <div className="mt-4 rounded-xl border border-border bg-muted p-4">
-                      <div className="flex flex-col gap-3">
-                        <div className="space-y-2">
-                          <p className="text-sm text-foreground font-medium">
-                            Notification details
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {notification.description}
-                          </p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
-                          <div className="inline-flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {new Date(notification.timestamp).toLocaleString()}
-                          </div>
-                          <div className="text-right">
-                            Status: {isRead ? "Read" : "Unread"}
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={handleCloseDetail}>
-                            Close
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={async () => {
-                              await deleteNotification(notification.id);
-                              handleCloseDetail();
-                            }}>
-                            Delete notification
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </Card>
-              );
-            })
+                  <div className="pt-2 border-t border-border">
+                    <p className="text-xs text-muted-foreground mb-1">Received</p>
+                    <p className="text-sm font-medium">{formatDistanceToNow(new Date(selectedNotification.timestamp), { addSuffix: true })}</p>
+                  </div>
+
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="w-full gap-2"
+                    onClick={() => handleDelete(selectedNotification.id)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Delete Notification
+                  </Button>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>
