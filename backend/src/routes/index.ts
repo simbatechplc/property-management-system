@@ -258,4 +258,41 @@ rootRouter.use("/api/v1/activities", ActivitiesRouter);
 rootRouter.use("/api/v1/site-config", SiteConfigRouter);
 rootRouter.use("/api/v1/chat", ChatRouter);
 
+// Diagnostic: test email sending (admin only in production)
+rootRouter.post("/api/v1/test-email", async (req, res) => {
+  try {
+    const { to, subject } = req.body;
+    const target = to || "simbatechtradingplc@gmail.com";
+    
+    // Show which env vars are present
+    const envStatus = {
+      BREVO_API_KEY: process.env.BREVO_API_KEY ? `set (${process.env.BREVO_API_KEY.substring(0, 10)}...)` : "NOT SET",
+      RESEND_API_KEY: process.env.RESEND_API_KEY ? "set" : "NOT SET",
+      SMTP_USER: process.env.SMTP_USER || "NOT SET",
+      SMTP_PASS: process.env.SMTP_PASS ? "set" : "NOT SET",
+    };
+
+    const { sendEmail } = await import("../utils/email");
+    await sendEmail({
+      to: target,
+      subject: subject || "Test Email from Kuru Rent Backend",
+      html: `<p>This is a test email sent at ${new Date().toISOString()}</p><p>Env: ${JSON.stringify(envStatus)}</p>`,
+    });
+
+    res.json({ success: true, sentTo: target, envStatus });
+  } catch (err: any) {
+    res.status(500).json({ 
+      success: false, 
+      error: err?.message,
+      details: err?.response?.data || err?.code,
+      envStatus: {
+        BREVO_API_KEY: process.env.BREVO_API_KEY ? `set (${process.env.BREVO_API_KEY.substring(0, 10)}...)` : "NOT SET",
+        RESEND_API_KEY: process.env.RESEND_API_KEY ? "set" : "NOT SET",
+        SMTP_USER: process.env.SMTP_USER || "NOT SET",
+        SMTP_PASS: process.env.SMTP_PASS ? "set" : "NOT SET",
+      }
+    });
+  }
+});
+
 export default rootRouter;
