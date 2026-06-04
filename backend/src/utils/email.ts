@@ -35,6 +35,7 @@ export const sendEmail = async ({
         timeout: 15000,
       }
     );
+    console.log(`[EMAIL] Sent via Brevo to ${to}`);
     return;
   }
 

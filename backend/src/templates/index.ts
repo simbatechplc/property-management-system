@@ -141,13 +141,24 @@ export const bookingPaymentStatusTemplate = ({
     ? "Your booking has been confirmed!"
     : "Your payment could not be verified";
 
+  const bodyContent = isApproved
+    ? `<p style="margin:0 0 20px;font-size:15px;color:#334155;">
+        Your payment has been <strong style="color:#16a34a;">verified and approved</strong> by our team.
+        Your booking is now confirmed. We look forward to welcoming you!
+       </p>`
+    : `<p style="margin:0 0 20px;font-size:15px;color:#334155;">
+        Unfortunately, we were unable to verify your payment for the booking below.
+        ${rejectionReason ? `<br/><br/><strong>Reason:</strong> ${rejectionReason}` : ""}
+        <br/><br/>Please contact our support team or try submitting your payment proof again.
+       </p>`;
+
   return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Booking ${status}</title>
+  <title>Booking Update</title>
 </head>
 <body style="margin:0;padding:0;background:#f4f6f8;font-family:'Segoe UI',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0">
@@ -172,16 +183,7 @@ export const bookingPaymentStatusTemplate = ({
           <tr>
             <td style="padding:28px 32px;">
               <p style="margin:0 0 16px;font-size:15px;color:#334155;">Dear <strong>${customerName}</strong>,</p>
-              ${isApproved
-                ? `<p style="margin:0 0 20px;font-size:15px;color:#334155;">
-                    Your payment has been <strong style="color:#16a34a;">verified and approved</strong> by our team.
-                    Your booking is now confirmed. We look forward to welcoming you!
-                  </p>`
-                : `<p style="margin:0 0 20px;font-size:15px;color:#334155;">
-                    Unfortunately, we were unable to verify your payment for the booking below.
-                    ${rejectionReason ? `<br/><br/><strong>Reason:</strong> ${rejectionReason}` : ""}
-                    <br/><br/>Please contact our support team or try submitting your payment proof again.
-                  </p>`}
+              ${bodyContent}
 
               <!-- Booking Details Card -->
               <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:24px;">
@@ -240,7 +242,7 @@ export const bookingPaymentStatusTemplate = ({
           <!-- Footer -->
           <tr>
             <td style="background:#f1f5f9;padding:16px 32px;text-align:center;border-top:1px solid #e2e8f0;">
-              <p style="margin:0;font-size:12px;color:#94a3b8;">© ${new Date().getFullYear()} Kuru Rent. All rights reserved.</p>
+              <p style="margin:0;font-size:12px;color:#94a3b8;">&#169; ${new Date().getFullYear()} Kuru Rent. All rights reserved.</p>
             </td>
           </tr>
         </table>

@@ -210,6 +210,9 @@
     "failedToLoad": "Failed to load bookings.",
     "retry": "Retry"
   },
+  "accountFooter": {
+    "logout": "Logout"
+  },
   "room": {
     "availableNow": "Available now",
     "currentlyUnavailable": "Currently unavailable",
