@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, CheckCircle2, Clock, RefreshCw, X } from "lucide-react";
+import { Bell, CheckCircle2, Clock, RefreshCw, X, Trash } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 import { cn } from "@/lib/utils";
 import LoaderState from "@/components/shared/loader-state";
@@ -40,6 +40,7 @@ export default function NotificationsPage() {
     loading,
     fetchNotifications,
     markAsRead,
+    deleteNotification,
   } = useNotifications();
   const [activeTab, setActiveTab] = useState<"all" | "unread" | "read">("all");
   const [selectedNotification, setSelectedNotification] = useState<any | null>(
@@ -49,15 +50,19 @@ export default function NotificationsPage() {
   const handleMarkAsRead = async (notificationId: string) => {
     try {
       await markAsRead(notificationId);
+      setActiveTab("read");
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
     }
   };
 
-  const handleNotificationClick = (notification: any) => {
+  const handleNotificationClick = async (notification: any) => {
     setSelectedNotification(notification);
     if (!notification.isRead) {
-      handleMarkAsRead(notification.id);
+      await handleMarkAsRead(notification.id);
+    } else {
+      // If already read, still show details but switch to read tab for consistency
+      setActiveTab("read");
     }
   };
 
@@ -187,14 +192,73 @@ export default function NotificationsPage() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <Badge variant="outline" className="text-xs uppercase">
-                        {isRead ? "Read" : "New"}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(notification.timestamp).toLocaleString()}
-                      </span>
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge variant="outline" className="text-xs uppercase">
+                          {isRead ? "Read" : "New"}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(notification.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedNotification(notification);
+                            if (!isRead) handleMarkAsRead(notification.id);
+                          }}
+                          className="h-8 w-8">
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await deleteNotification(notification.id);
+                            if (selectedNotification?.id === notification.id) {
+                              setSelectedNotification(null);
+                            }
+                          }}
+                          className="h-8 w-8 text-destructive">
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
+
+                  {selectedNotification?.id === notification.id && (
+                    <div className="mt-4 rounded-lg border-t pt-4">
+                      <p className="text-sm text-foreground mb-2">
+                        {notification.description}
+                      </p>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="text-xs text-muted-foreground">
+                          <Clock className="w-3 h-3 inline mr-1" />
+                          {new Date(notification.timestamp).toLocaleString()}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setSelectedNotification(null)}>
+                            Close
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={async () => {
+                              await deleteNotification(notification.id);
+                              setSelectedNotification(null);
+                            }}>
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </Card>
               );
             })
@@ -202,50 +266,6 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* Notification Detail Modal */}
-      {selectedNotification && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="max-w-lg w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      "text-xs font-medium px-2 py-0.5 rounded-full",
-                      ACTION_COLORS[selectedNotification.action] ||
-                        "bg-gray-100 text-gray-700",
-                    )}>
-                    {ACTION_LABELS[selectedNotification.action] ||
-                      selectedNotification.action}
-                  </span>
-                  {selectedNotification.isRead && (
-                    <Badge variant="outline" className="text-xs gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Read
-                    </Badge>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleCloseDetail}
-                  className="h-8 w-8">
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-sm text-foreground mb-4">
-                {selectedNotification.description}
-              </p>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-6">
-                <Clock className="w-3 h-3" />
-                {new Date(selectedNotification.timestamp).toLocaleString()}
-              </div>
-              <Button onClick={handleCloseDetail} className="w-full">
-                Close
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
     </div>
   );
 }

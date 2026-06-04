@@ -17,6 +17,7 @@ interface NotificationContextType {
   loading: boolean;
   fetchNotifications: () => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
+  deleteNotification: (id: string) => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -51,6 +52,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const deleteNotification = async (id: string) => {
+    try {
+      await api.delete(`/activities/notifications/${id}`);
+      setNotifications((prev: Notification[]) => {
+        const toDelete = prev.find((n) => n.id === id);
+        if (toDelete && !toDelete.isRead) {
+          setUnreadCount((u) => Math.max(0, u - 1));
+        }
+        return prev.filter((n) => n.id !== id);
+      });
+    } catch (error) {
+      console.error("Failed to delete notification:", error);
+    }
+  };
+
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000);
@@ -65,6 +81,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         loading,
         fetchNotifications,
         markAsRead,
+        deleteNotification,
       }}
     >
       {children}
