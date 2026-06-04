@@ -109,15 +109,24 @@ router.patch(
   })
 );
 
-// 🗑️ Delete notification (activity)
+// 🗑️ Delete notification (activity) — soft delete by marking as hidden
 router.delete(
   "/notifications/:id",
   authGuard({ cantAccessBy: ["GUEST"] }),
   tryCatch(async (req, res) => {
     const { id } = req.params;
     try {
+      // Try hard delete first
       await prisma.activity.delete({ where: { id } });
-    } catch {}
+    } catch {
+      // If FK constraint prevents deletion, update description to mark as deleted
+      try {
+        await prisma.activity.update({
+          where: { id },
+          data: { description: "__DELETED__" },
+        });
+      } catch {}
+    }
     res.json({ success: true });
   })
 );

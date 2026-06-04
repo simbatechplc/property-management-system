@@ -5,9 +5,27 @@ import {
   useEffect,
   createContext,
   useContext,
+  useCallback,
   ReactNode,
 } from "react";
 import { api } from "@/hooks/api";
+
+const READ_KEY = "admin_read_notifications";
+
+function getStoredReadIds(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const stored = localStorage.getItem(READ_KEY);
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  } catch { return new Set(); }
+}
+
+function saveReadIds(ids: Set<string>) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(READ_KEY, JSON.stringify([...ids]));
+  } catch {}
+}
 
 interface Notification {
   id: string;
@@ -22,78 +40,74 @@ interface NotificationContextType {
   unreadCount: number;
   loading: boolean;
   fetchNotifications: () => Promise<void>;
-  markAsRead: (id: string) => Promise<void>;
+  markAsRead: (id: string) => void;
   deleteNotification: (id: string) => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [rawNotifications, setRawNotifications] = useState<Notification[]>([]);
+  const [readIds, setReadIds] = useState<Set<string>>(getStoredReadIds);
   const [loading, setLoading] = useState(false);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get("/activities/notifications?limit=50");
-      setNotifications(res.data?.data || []);
-      setUnreadCount(res.data?.unreadCount || 0);
+      const data: Notification[] = res.data?.data || [];
+      // Filter out soft-deleted notifications
+      setRawNotifications(data.filter(n => n.description !== "__DELETED__"));
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const markAsRead = async (id: string) => {
-    // Optimistically update UI immediately
-    setNotifications((prev: Notification[]) =>
-      prev.map((n: Notification) =>
-        n.id === id ? { ...n, isRead: true } : n
-      )
-    );
-    setUnreadCount((prev: number) => Math.max(0, prev - 1));
-    // Persist to backend
-    try {
-      await api.patch(`/activities/notifications/${id}/read`);
-    } catch (error) {
-      console.error("Failed to mark notification as read:", error);
-      // Revert on failure
-      setNotifications((prev: Notification[]) =>
-        prev.map((n: Notification) =>
-          n.id === id ? { ...n, isRead: false } : n
-        )
-      );
-      setUnreadCount((prev: number) => prev + 1);
-    }
-  };
+  // Compute notifications with isRead based on localStorage
+  const notifications = rawNotifications.map(n => ({
+    ...n,
+    isRead: readIds.has(n.id),
+  }));
 
-  const deleteNotification = async (id: string) => {
-    const toDelete = notifications.find((n) => n.id === id);
-    // Optimistically remove from UI immediately
-    setNotifications((prev: Notification[]) => prev.filter((n) => n.id !== id));
-    if (toDelete && !toDelete.isRead) {
-      setUnreadCount((prev: number) => Math.max(0, prev - 1));
-    }
-    // Persist to backend
+  // Unread count — notifications not in readIds
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const markAsRead = useCallback((id: string) => {
+    setReadIds(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      saveReadIds(next);
+      return next;
+    });
+    // Also tell the backend (fire and forget)
+    api.patch(`/activities/notifications/${id}/read`).catch(() => {});
+  }, []);
+
+  const deleteNotification = useCallback(async (id: string) => {
+    // Remove from local state immediately
+    setRawNotifications(prev => prev.filter(n => n.id !== id));
+    setReadIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      saveReadIds(next);
+      return next;
+    });
+    // Tell backend
     try {
       await api.delete(`/activities/notifications/${id}`);
     } catch (error) {
       console.error("Failed to delete notification:", error);
-      // Revert on failure — add it back
-      if (toDelete) {
-        setNotifications((prev) => [toDelete, ...prev]);
-        if (!toDelete.isRead) setUnreadCount((prev) => prev + 1);
-      }
+      // Don't revert — keep it removed from UI
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchNotifications]);
 
   return (
     <NotificationContext.Provider
