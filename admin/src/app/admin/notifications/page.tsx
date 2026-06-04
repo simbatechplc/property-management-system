@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, CheckCircle2, Clock, RefreshCw, Star, X } from "lucide-react";
-import { api } from "@/hooks/api";
+import { Bell, CheckCircle2, Clock, RefreshCw, X } from "lucide-react";
+import { useNotifications } from "@/hooks/use-notifications";
 import { cn } from "@/lib/utils";
 import LoaderState from "@/components/shared/loader-state";
 
@@ -34,63 +34,23 @@ const ACTION_COLORS: Record<string, string> = {
 };
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"all" | "unread" | "pinned">(
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    fetchNotifications,
+    markAsRead,
+  } = useNotifications();
+  const [activeTab, setActiveTab] = useState<"all" | "unread" | "read">(
     "all",
   );
-  const [pinnedNotifications, setPinnedNotifications] = useState<string[]>([]);
   const [selectedNotification, setSelectedNotification] = useState<any | null>(
     null,
   );
 
-  useEffect(() => {
-    const storedPinned = window.localStorage.getItem(
-      "admin_notifications_pinned",
-    );
-    if (storedPinned) {
-      try {
-        setPinnedNotifications(JSON.parse(storedPinned));
-      } catch {
-        setPinnedNotifications([]);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem(
-      "admin_notifications_pinned",
-      JSON.stringify(pinnedNotifications),
-    );
-  }, [pinnedNotifications]);
-
-  const fetchNotifications = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get("/activities/notifications?limit=50");
-      setNotifications(res.data?.data || []);
-      setUnreadCount(res.data?.unreadCount || 0);
-    } catch (error) {
-      console.error("Failed to fetch notifications:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
   const handleMarkAsRead = async (notificationId: string) => {
     try {
-      await api.patch(`/activities/notifications/${notificationId}/read`);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n)),
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      await markAsRead(notificationId);
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
     }
@@ -111,21 +71,11 @@ export default function NotificationsPage() {
     if (activeTab === "unread") {
       return !notification.isRead;
     }
-
-    if (activeTab === "pinned") {
-      return pinnedNotifications.includes(notification.id);
+    if (activeTab === "read") {
+      return Boolean(notification.isRead);
     }
-
     return true;
   });
-
-  const handleTogglePin = (notificationId: string) => {
-    setPinnedNotifications((prev) =>
-      prev.includes(notificationId)
-        ? prev.filter((id) => id !== notificationId)
-        : [...prev, notificationId],
-    );
-  };
 
   if (loading && notifications.length === 0) return <LoaderState />;
 
@@ -157,7 +107,7 @@ export default function NotificationsPage() {
         <Tabs
           value={activeTab}
           onValueChange={(value) =>
-            setActiveTab(value as "all" | "unread" | "pinned")
+            setActiveTab(value as "all" | "unread" | "read")
           }
           className="mb-6">
           <TabsList className="grid w-full grid-cols-3 gap-2 rounded-full bg-muted p-1 text-sm">
@@ -172,9 +122,9 @@ export default function NotificationsPage() {
               Unread
             </TabsTrigger>
             <TabsTrigger
-              value="pinned"
+              value="read"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full">
-              Pinned
+              Read
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -184,34 +134,30 @@ export default function NotificationsPage() {
             <Card className="p-16 text-center">
               <Bell className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-30" />
               <p className="text-muted-foreground font-medium">
-                {activeTab === "pinned"
-                  ? "No pinned notifications"
+                {activeTab === "read"
+                  ? "No read notifications"
                   : activeTab === "unread"
-                    ? "No unread notifications"
-                    : "No notifications"}
+                  ? "No unread notifications"
+                  : "No notifications yet"}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {activeTab === "pinned"
-                  ? "Pin a notification to keep it at the top."
+                {activeTab === "read"
+                  ? "You have not opened any notifications yet."
                   : activeTab === "unread"
-                    ? "You're all caught up."
-                    : "You're all caught up!"}
+                  ? "You’re all caught up."
+                  : "Notifications will appear here as they arrive."}
               </p>
             </Card>
           ) : (
             filteredNotifications.map((notification: any) => {
-              const isNew =
-                new Date(notification.timestamp) >
-                new Date(Date.now() - 24 * 60 * 60 * 1000);
-              const isRead = notification.isRead || !isNew;
-              const isPinned = pinnedNotifications.includes(notification.id);
+              const isRead = Boolean(notification.isRead);
 
               return (
                 <Card
                   key={notification.id}
                   className={cn(
-                    "p-4 cursor-pointer transition-all hover:shadow-md",
-                    !isRead && "border-l-4 border-l-primary bg-primary/5",
+                    "group overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md",
+                    !isRead && "border-primary/30 bg-primary/5",
                   )}
                   onClick={() => handleNotificationClick(notification)}>
                   <div className="flex items-start gap-3">
@@ -227,8 +173,8 @@ export default function NotificationsPage() {
                             notification.action}
                         </span>
                         {!isRead && (
-                          <Badge variant="default" className="text-xs">
-                            New
+                          <Badge variant="secondary" className="text-xs uppercase">
+                            Unread
                           </Badge>
                         )}
                       </div>
@@ -240,30 +186,13 @@ export default function NotificationsPage() {
                         {new Date(notification.timestamp).toLocaleString()}
                       </div>
                     </div>
-                    <div className="flex flex-col items-end justify-between gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleTogglePin(notification.id);
-                        }}
-                        className="h-8 w-8 p-0"
-                        aria-label={
-                          isPinned ? "Unpin notification" : "Pin notification"
-                        }>
-                        <Star
-                          className={cn(
-                            "h-4 w-4",
-                            isPinned
-                              ? "text-amber-400"
-                              : "text-muted-foreground",
-                          )}
-                        />
-                      </Button>
-                      {!isRead && (
-                        <div className="w-2 h-2 rounded-full bg-primary" />
-                      )}
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge variant="outline" className="text-xs uppercase">
+                        {isRead ? "Read" : "New"}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(notification.timestamp).toLocaleString()}
+                      </span>
                     </div>
                   </div>
                 </Card>
