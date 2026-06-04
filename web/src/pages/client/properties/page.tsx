@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useGetProperties } from "@/hooks/api/use-properties";
@@ -38,6 +39,7 @@ const SUGGESTIONS = [
 ];
 
 function SearchBar({ location, onSearch }: { location: string; onSearch: (q: string, checkIn?: Date, checkOut?: Date, adults?: number) => void }) {
+  const { t } = useTranslation();
   const [q, setQ] = useState(location);
   const [open, setOpen] = useState(false);
   const [checkIn, setCheckIn] = useState<Date>();
@@ -92,7 +94,7 @@ function SearchBar({ location, onSearch }: { location: string; onSearch: (q: str
           <input
             autoComplete="off"
             className="flex-1 text-sm text-gray-900 bg-transparent outline-none placeholder:text-gray-400 min-w-0"
-            placeholder="Destination or property"
+            placeholder={t("search.destinationPlaceholderMobile")}
             value={q}
             onChange={(e) => { setQ(e.target.value); setOpen(true); }}
             onFocus={() => setOpen(true)}
@@ -115,7 +117,7 @@ function SearchBar({ location, onSearch }: { location: string; onSearch: (q: str
           <input
             autoComplete="off"
             className="flex-1 text-base text-gray-900 bg-transparent outline-none placeholder:text-gray-400 min-w-0"
-            placeholder="Enter a destination or property"
+            placeholder={t("search.destinationPlaceholder")}
             value={q}
             onChange={(e) => { setQ(e.target.value); setOpen(true); setGuestOpen(false); }}
             onFocus={() => { setOpen(true); setGuestOpen(false); }}
@@ -129,8 +131,8 @@ function SearchBar({ location, onSearch }: { location: string; onSearch: (q: str
             <button className="flex items-center gap-2 px-5 py-4 border-r border-gray-200 hover:bg-gray-50 transition-colors shrink-0" onClick={() => setOpen(false)}>
               <CalendarDays className="w-5 h-5 text-gray-400" />
               <div className="text-left">
-                <p className="text-xs text-gray-400">Check-in</p>
-                <p className="text-sm text-gray-700 font-medium">{checkIn ? format(checkIn, "d MMM") : "Add date"}</p>
+                <p className="text-xs text-gray-400">{t("search.checkIn")}</p>
+                <p className="text-sm text-gray-700 font-medium">{checkIn ? format(checkIn, "d MMM") : t("search.addDate")}</p>
               </div>
             </button>
           </PopoverTrigger>
@@ -145,8 +147,8 @@ function SearchBar({ location, onSearch }: { location: string; onSearch: (q: str
             <button className="flex items-center gap-2 px-5 py-4 border-r border-gray-200 hover:bg-gray-50 transition-colors shrink-0" onClick={() => setOpen(false)}>
               <CalendarDays className="w-5 h-5 text-gray-400" />
               <div className="text-left">
-                <p className="text-xs text-gray-400">Check-out</p>
-                <p className="text-sm text-gray-700 font-medium">{checkOut ? format(checkOut, "d MMM") : "Add date"}</p>
+                <p className="text-xs text-gray-400">{t("search.checkOut")}</p>
+                <p className="text-sm text-gray-700 font-medium">{checkOut ? format(checkOut, "d MMM") : t("search.addDate")}</p>
               </div>
             </button>
           </PopoverTrigger>
@@ -163,15 +165,15 @@ function SearchBar({ location, onSearch }: { location: string; onSearch: (q: str
           >
             <Users className="w-5 h-5 text-gray-400" />
             <div className="text-left">
-              <p className="text-xs text-gray-400">Guests</p>
-              <p className="text-sm text-gray-700 font-medium">{adults} adult{adults > 1 ? "s" : ""} · {rooms} room{rooms > 1 ? "s" : ""}</p>
+              <p className="text-xs text-gray-400">{t("search.guests")}</p>
+              <p className="text-sm text-gray-700 font-medium">{t("search.adult", { count: adults })} · {t("search.room", { count: rooms })}</p>
             </div>
             <ChevronDown className="w-4 h-4 text-gray-400" />
           </button>
           {guestOpen && (
             <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl p-4 w-64 z-[99999]">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-sm font-medium text-gray-700">Adults</span>
+                <span className="text-sm font-medium text-gray-700">{t("search.adults")}</span>
                 <div className="flex items-center gap-3">
                   <button onClick={() => setAdults(a => Math.max(1, a - 1))} className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"><Minus className="w-3 h-3" /></button>
                   <span className="text-sm font-semibold w-4 text-center">{adults}</span>
@@ -179,24 +181,23 @@ function SearchBar({ location, onSearch }: { location: string; onSearch: (q: str
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">Rooms</span>
+                <span className="text-sm font-medium text-gray-700">{t("search.rooms")}</span>
                 <div className="flex items-center gap-3">
                   <button onClick={() => setRooms(r => Math.max(1, r - 1))} className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"><Minus className="w-3 h-3" /></button>
                   <span className="text-sm font-semibold w-4 text-center">{rooms}</span>
                   <button onClick={() => setRooms(r => r + 1)} className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"><Plus className="w-3 h-3" /></button>
                 </div>
               </div>
-              <Button className="w-full mt-4" size="sm" onClick={() => setGuestOpen(false)}>Done</Button>
+              <Button className="w-full mt-4" size="sm" onClick={() => setGuestOpen(false)}>{t("search.done")}</Button>
             </div>
           )}
         </div>
 
-        {/* Search */}
         <button
           onClick={() => { onSearch(q, checkIn, checkOut, adults); setOpen(false); setGuestOpen(false); }}
           className="bg-primary hover:bg-primary/90 text-white px-10 text-base font-bold transition-colors shrink-0 rounded-r-lg"
         >
-          SEARCH
+          {t("search.search")}
         </button>
       </div>{/* end desktop */}
 
@@ -213,7 +214,7 @@ function SearchBar({ location, onSearch }: { location: string; onSearch: (q: str
               </div>
               <div>
                 <p className="text-sm font-semibold">{q}</p>
-                <p className="text-xs text-white/70">Search for this</p>
+                <p className="text-xs text-white/70">{t("search.searchFor")}</p>
               </div>
             </button>
           )}
@@ -237,7 +238,7 @@ function SearchBar({ location, onSearch }: { location: string; onSearch: (q: str
                 <p className="text-xs text-gray-400">{s.sub}</p>
               </div>
               <span className="text-xs text-gray-400 shrink-0 mr-2">{s.type}</span>
-              {s.popular && <span className="text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded font-medium shrink-0">Popular</span>}
+              {s.popular && <span className="text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded font-medium shrink-0">{t("search.popular")}</span>}
             </button>
           ))}
         </div>
@@ -247,6 +248,7 @@ function SearchBar({ location, onSearch }: { location: string; onSearch: (q: str
 }
 
 export default function PropertiesPage() {
+  const { t } = useTranslation();
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [stickyVisible, setStickyVisible] = useState(false);
@@ -355,10 +357,12 @@ export default function PropertiesPage() {
         <div className="absolute inset-0 bg-black/55" />
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 gap-4" style={{ overflow: "visible", zIndex: 10 }}>
           <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white drop-shadow-lg leading-tight">
-            {locationParam ? `${locationParam} hotels & places to stay` : "Find your perfect stay"}
+            {locationParam
+              ? t("propertiesPage.heroTitle", { location: locationParam })
+              : t("propertiesPage.heroTitleDefault")}
           </h1>
           <p className="text-white/80 text-xs sm:text-sm md:text-base hidden sm:block">
-            Search to compare prices and discover great deals with free cancellation
+            {t("propertiesPage.heroSubtitle")}
           </p>
           <div className="w-full max-w-5xl px-2 sm:px-4" style={{ position: "relative", zIndex: 100 }}>
             <SearchBar location={locationParam} onSearch={handleSearch} />

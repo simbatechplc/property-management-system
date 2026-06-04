@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,10 +9,10 @@ import { ArrowLeft, Loader2, Mail, KeyRound, Lock, CheckCircle2 } from "lucide-r
 import axios from "axios";
 
 const SERVER = import.meta.env.VITE_SERVER_BASE_URL;
-
 type Step = "email" | "code" | "password" | "done";
 
 const ForgotPasswordView = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
@@ -21,17 +22,15 @@ const ForgotPasswordView = () => {
   const [loading, setLoading] = useState(false);
 
   const handleSendCode = async () => {
-    if (!email.trim()) return toast.error("Enter your email");
+    if (!email.trim()) return toast.error(t("auth.email"));
     setLoading(true);
     try {
       await axios.post(`${SERVER}/api/v1/auth/forgot-password`, { email });
       toast.success("Reset code sent — check your inbox");
       setStep("code");
     } catch (e: any) {
-      toast.error(e?.response?.data?.message || "Failed to send code. Check your email address.");
-    } finally {
-      setLoading(false);
-    }
+      toast.error(e?.response?.data?.message || "Failed to send code.");
+    } finally { setLoading(false); }
   };
 
   const handleVerifyCode = async () => {
@@ -43,9 +42,7 @@ const ForgotPasswordView = () => {
       setStep("password");
     } catch (e: any) {
       toast.error(e?.response?.data?.message || "Invalid or expired code");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const handleResetPassword = async () => {
@@ -58,152 +55,102 @@ const ForgotPasswordView = () => {
       setStep("done");
     } catch (e: any) {
       toast.error(e?.response?.data?.message || "Failed to reset password");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-md space-y-6">
-        {/* Back button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full"
-          onClick={() => step === "email" ? navigate("/auth/signin") : setStep(step === "code" ? "email" : step === "password" ? "code" : "email")}
-        >
+        <Button variant="ghost" size="icon" className="rounded-full"
+          onClick={() => step === "email" ? navigate("/auth/signin") : setStep(step === "code" ? "email" : step === "password" ? "code" : "email")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
 
-        {/* Step 1 — Email */}
         {step === "email" && (
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Forgot Password</h1>
-              <p className="text-muted-foreground mt-2">
-                Enter your email address and we'll send you a 6-digit verification code.
-              </p>
+              <h1 className="text-3xl font-bold tracking-tight">{t("forgotPassword.title")}</h1>
+              <p className="text-muted-foreground mt-2">{t("forgotPassword.subtitle")}</p>
             </div>
             <div className="space-y-2">
-              <Label>Email Address</Label>
+              <Label>{t("forgotPassword.emailAddress")}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  className="pl-9 py-5"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleSendCode()}
-                  autoFocus
-                />
+                <Input className="pl-9 py-5" type="email" placeholder={t("forgotPassword.emailPlaceholder")}
+                  value={email} onChange={e => setEmail(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleSendCode()} autoFocus />
               </div>
             </div>
             <Button className="w-full py-5" onClick={handleSendCode} disabled={loading}>
-              {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</> : "Send Code"}
+              {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("forgotPassword.sending")}</> : t("forgotPassword.sendCode")}
             </Button>
           </div>
         )}
 
-        {/* Step 2 — Code */}
         {step === "code" && (
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Enter Code</h1>
-              <p className="text-muted-foreground mt-2">
-                A 6-digit code was sent to <span className="font-medium text-foreground">{email}</span>. It expires in 5 minutes.
-              </p>
+              <h1 className="text-3xl font-bold tracking-tight">{t("forgotPassword.enterCode")}</h1>
+              <p className="text-muted-foreground mt-2">{t("forgotPassword.codeSentTo", { email })}</p>
             </div>
             <div className="space-y-2">
-              <Label>Verification Code</Label>
+              <Label>{t("forgotPassword.verificationCode")}</Label>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  className="pl-9 py-5 text-center tracking-[0.5em] text-lg font-mono"
-                  placeholder="000000"
-                  maxLength={6}
-                  value={code}
-                  onChange={e => setCode(e.target.value.replace(/\D/g, ""))}
-                  onKeyDown={e => e.key === "Enter" && handleVerifyCode()}
-                  autoFocus
-                />
+                <Input className="pl-9 py-5 text-center tracking-[0.5em] text-lg font-mono" placeholder="000000"
+                  maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ""))}
+                  onKeyDown={e => e.key === "Enter" && handleVerifyCode()} autoFocus />
               </div>
             </div>
             <Button className="w-full py-5" onClick={handleVerifyCode} disabled={loading || code.length !== 6}>
-              {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...</> : "Verify Code"}
+              {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("forgotPassword.verifying")}</> : t("forgotPassword.verify")}
             </Button>
-            <button
-              className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => setStep("email")}
-            >
-              ← Resend code
+            <button className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => setStep("email")}>
+              {t("forgotPassword.resendCode")}
             </button>
           </div>
         )}
 
-        {/* Step 3 — New Password */}
         {step === "password" && (
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">New Password</h1>
-              <p className="text-muted-foreground mt-2">Choose a new password for your account.</p>
+              <h1 className="text-3xl font-bold tracking-tight">{t("forgotPassword.newPassword")}</h1>
+              <p className="text-muted-foreground mt-2">{t("forgotPassword.newPasswordSubtitle")}</p>
             </div>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>New Password</Label>
+                <Label>{t("forgotPassword.newPasswordLabel")}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="pl-9 py-5"
-                    type="password"
-                    placeholder="Min. 4 characters"
-                    autoComplete="new-password"
-                    value={newPassword}
-                    onChange={e => setNewPassword(e.target.value)}
-                    autoFocus
-                  />
+                  <Input className="pl-9 py-5" type="password" placeholder={t("forgotPassword.minChars")}
+                    autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} autoFocus />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Confirm Password</Label>
+                <Label>{t("forgotPassword.confirmPassword")}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="pl-9 py-5"
-                    type="password"
-                    placeholder="Repeat password"
-                    autoComplete="new-password"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    onKeyDown={e => e.key === "Enter" && handleResetPassword()}
-                  />
+                  <Input className="pl-9 py-5" type="password" placeholder={t("forgotPassword.repeatPassword")}
+                    autoComplete="new-password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && handleResetPassword()} />
                 </div>
               </div>
             </div>
-            <Button
-              className="w-full py-5"
-              onClick={handleResetPassword}
-              disabled={loading || newPassword.length < 4 || newPassword !== confirmPassword}
-            >
-              {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resetting...</> : "Reset Password"}
+            <Button className="w-full py-5" onClick={handleResetPassword}
+              disabled={loading || newPassword.length < 4 || newPassword !== confirmPassword}>
+              {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("forgotPassword.resetting")}</> : t("forgotPassword.resetPassword")}
             </Button>
           </div>
         )}
 
-        {/* Done */}
         {step === "done" && (
           <div className="flex flex-col items-center gap-6 py-8">
             <CheckCircle2 className="h-16 w-16 text-emerald-500" />
             <div className="text-center space-y-2">
-              <h1 className="text-3xl font-bold tracking-tight">Password Reset!</h1>
-              <p className="text-muted-foreground">
-                Your password has been reset successfully. You can now log in with your new password.
-              </p>
+              <h1 className="text-3xl font-bold tracking-tight">{t("forgotPassword.passwordReset")}</h1>
+              <p className="text-muted-foreground">{t("forgotPassword.passwordResetMsg")}</p>
             </div>
-            <Button className="w-full py-5" onClick={() => navigate("/auth/signin")}>
-              Back to Login
-            </Button>
+            <Button className="w-full py-5" onClick={() => navigate("/auth/signin")}>{t("forgotPassword.backToLogin")}</Button>
           </div>
         )}
       </div>

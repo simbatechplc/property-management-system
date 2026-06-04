@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Users, Maximize2, Wifi, Wind, Tv, Droplet, BedDouble, Bath, Coffee, Car, Utensils, Dumbbell, CheckCircle2, XCircle, Calendar, AlertCircle } from "lucide-react";
 import FormatedAmount from "@/components/shared/formatted-amount";
 import RoomFeatures from "./room-features";
@@ -22,6 +23,7 @@ const featureIcons: Record<string, React.ReactNode> = {
 };
 
 export default function RoomDetails({ room }: { room: Room }) {
+  const { t } = useTranslation();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -58,7 +60,7 @@ export default function RoomDetails({ room }: { room: Room }) {
               : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
           )}>
             <span className={cn("w-1.5 h-1.5 rounded-full", room.availability ? "bg-green-500" : "bg-red-500")} />
-            {room.availability ? "Available now" : "Currently unavailable"}
+            {room.availability ? t("room.availableNow") : t("room.currentlyUnavailable")}
           </span>
         </div>
 
@@ -76,10 +78,10 @@ export default function RoomDetails({ room }: { room: Room }) {
             return hasDiscount ? (
               <div className="flex items-center gap-3">
                 <div>
-                  <p className="text-sm line-through text-muted-foreground">ETB {room.price.toLocaleString()}/night</p>
+                  <p className="text-sm line-through text-muted-foreground">ETB {room.price.toLocaleString()}{t("room.night")}</p>
                   <div className="flex items-baseline gap-1.5">
                     <FormatedAmount amount={effectiveRounded} className="text-2xl font-bold text-red-500" />
-                    <span className="text-sm text-muted-foreground">/ night</span>
+                    <span className="text-sm text-muted-foreground">{t("room.night")}</span>
                   </div>
                 </div>
                 <span className="text-xs font-bold bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 px-2.5 py-1 rounded-full">
@@ -89,7 +91,7 @@ export default function RoomDetails({ room }: { room: Room }) {
             ) : (
               <div className="flex items-baseline gap-1.5">
                 <FormatedAmount amount={room.price} className="text-2xl font-bold text-primary" />
-                <span className="text-sm text-muted-foreground">/ night</span>
+                <span className="text-sm text-muted-foreground">{t("room.night")}</span>
               </div>
             );
           })()}
@@ -98,10 +100,10 @@ export default function RoomDetails({ room }: { room: Room }) {
         {/* Key stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { icon: <Maximize2 className="w-4 h-4 text-primary" />, label: "Room size", value: `${room.squareMeters} sqm` },
-            { icon: <Users className="w-4 h-4 text-primary" />, label: "Max guests", value: `${room.maxOccupancy} guests` },
-            { icon: <BedDouble className="w-4 h-4 text-primary" />, label: "Room type", value: room.type },
-            { icon: <CheckCircle2 className="w-4 h-4 text-primary" />, label: "Cancellation", value: "Free" },
+            { icon: <Maximize2 className="w-4 h-4 text-primary" />, label: t("room.roomSize"), value: `${room.squareMeters} sqm` },
+            { icon: <Users className="w-4 h-4 text-primary" />, label: t("room.maxGuests"), value: `${room.maxOccupancy}` },
+            { icon: <BedDouble className="w-4 h-4 text-primary" />, label: t("room.roomType"), value: room.type },
+            { icon: <CheckCircle2 className="w-4 h-4 text-primary" />, label: t("room.cancellation"), value: t("room.free") },
           ].map(({ icon, label, value }) => (
             <div key={label} className="flex flex-col gap-1.5 p-3.5 rounded-2xl bg-muted/40 border border-border hover:bg-muted/60 transition-colors">
               <div className="flex items-center gap-1.5">
@@ -119,7 +121,7 @@ export default function RoomDetails({ room }: { room: Room }) {
         <div className="rounded-2xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/10 p-4">
           <div className="flex items-center gap-2 mb-3">
             <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-            <p className="text-sm font-semibold text-red-700 dark:text-red-400">Booked dates</p>
+            <p className="text-sm font-semibold text-red-700 dark:text-red-400">{t("room.bookedDates")}</p>
           </div>
           <div className="space-y-1.5">
             {bookedRangesDisplay.map((r, i) => (
@@ -133,7 +135,7 @@ export default function RoomDetails({ room }: { room: Room }) {
             <div className="mt-3 pt-3 border-t border-red-200 dark:border-red-800 flex items-center gap-2 text-sm">
               <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
               <span className="text-green-600 dark:text-green-400 font-medium">
-                Available from {format(nextAvailableDate, "MMM d, yyyy")} onwards
+                {t("room.availableFrom", { date: format(nextAvailableDate, "MMM d, yyyy") })}
               </span>
             </div>
           )}
@@ -145,7 +147,7 @@ export default function RoomDetails({ room }: { room: Room }) {
         <div className="rounded-2xl bg-muted/30 border border-border p-5">
           <h2 className="text-base font-semibold mb-2 flex items-center gap-2">
             <span className="w-1 h-4 bg-primary rounded-full" />
-            About this room
+            {t("room.aboutThisRoom")}
           </h2>
           <p className="leading-relaxed text-muted-foreground text-sm">{room.description}</p>
         </div>
@@ -156,7 +158,7 @@ export default function RoomDetails({ room }: { room: Room }) {
         <div>
           <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
             <span className="w-1 h-4 bg-primary rounded-full" />
-            Room features
+            {t("room.roomFeatures")}
           </h2>
           <div className="space-y-4">
             {Object.entries(featuresByCategory).map(([category, features]) => (
@@ -186,14 +188,14 @@ export default function RoomDetails({ room }: { room: Room }) {
       {/* Policies */}
       <div className="rounded-2xl border border-border overflow-hidden">
         <div className="px-5 py-3 bg-muted/30 border-b border-border">
-          <h2 className="text-sm font-semibold">Room policies</h2>
+          <h2 className="text-sm font-semibold">{t("room.roomPolicies")}</h2>
         </div>
         {[
-          { label: "Check-in", value: "From 15:00" },
-          { label: "Check-out", value: "Until 12:00" },
-          { label: "Cancellation", value: "Free cancellation", green: true },
-          { label: "Smoking", value: "Not allowed" },
-          { label: "Pets", value: "Not allowed" },
+          { label: t("room.checkInPolicy"), value: t("room.checkInTime") },
+          { label: t("room.checkOutPolicy"), value: t("room.checkOutTime") },
+          { label: t("room.cancellation"), value: t("room.freeCancellation"), green: true },
+          { label: t("room.smoking"), value: t("room.smokingNotAllowed") },
+          { label: t("room.pets"), value: t("room.petsNotAllowed") },
         ].map(({ label, value, green }: any, i, arr) => (
           <div key={label} className={cn("flex justify-between items-center px-5 py-3 text-sm", i < arr.length - 1 ? "border-b border-border/50" : "")}>
             <span className="text-muted-foreground">{label}</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import FilterTab from "./_components/filter-tab";
 import { api } from "@/hooks/api";
 
@@ -14,28 +15,29 @@ const HERO_IMAGES = [
 ];
 
 const HeroSection = () => {
+  const { t } = useTranslation();
   const [current, setCurrent] = useState(0);
-  const [transitioning, setTransitioning] = useState(false);
-  const [heroTitle, setHeroTitle] = useState("Find Your Perfect Stay, Anywhere");
-  const [heroSubtitle, setHeroSubtitle] = useState("Discover cozy properties across Ethiopia. Compare prices and book in just a few clicks.");
+  const [siteTitle, setSiteTitle] = useState("");
+  const [siteSubtitle, setSiteSubtitle] = useState("");
 
   useEffect(() => {
     api.get("/site-config").then(res => {
-      if (res.data.heroTitle) setHeroTitle(res.data.heroTitle);
-      if (res.data.heroSubtitle) setHeroSubtitle(res.data.heroSubtitle);
+      // Only use site-config values if they exist (admin-customised); otherwise fall back to i18n
+      if (res.data.heroTitle) setSiteTitle(res.data.heroTitle);
+      if (res.data.heroSubtitle) setSiteSubtitle(res.data.heroSubtitle);
     }).catch(() => {});
   }, []);
 
   useEffect(() => {
     const id = setInterval(() => {
-      setTransitioning(true);
-      setTimeout(() => {
-        setCurrent(c => (c + 1) % HERO_IMAGES.length);
-        setTransitioning(false);
-      }, 1000);
+      setTimeout(() => setCurrent(c => (c + 1) % HERO_IMAGES.length), 1000);
     }, 3000);
     return () => clearInterval(id);
   }, []);
+
+  // If admin has set a custom title use it, otherwise use the translated default
+  const heroTitle = siteTitle || t("hero.defaultTitle");
+  const heroSubtitle = siteSubtitle || t("hero.defaultSubtitle");
 
   return (
     <div className="w-full relative flex flex-col items-center justify-center min-h-[480px] md:min-h-[520px] overflow-hidden">
@@ -55,12 +57,8 @@ const HeroSection = () => {
       </div>
 
       <div className="relative z-20 text-center px-4 mb-6">
-        <h1 className="font-bold text-3xl md:text-4xl text-white mb-2 drop-shadow-lg">
-          {heroTitle}
-        </h1>
-        <p className="text-white/80 text-sm md:text-base max-w-lg mx-auto">
-          {heroSubtitle}
-        </p>
+        <h1 className="font-bold text-3xl md:text-4xl text-white mb-2 drop-shadow-lg">{heroTitle}</h1>
+        <p className="text-white/80 text-sm md:text-base max-w-lg mx-auto">{heroSubtitle}</p>
       </div>
 
       <div className="relative z-20 w-[95%] md:w-[780px] lg:w-[860px]">
