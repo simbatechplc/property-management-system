@@ -251,6 +251,7 @@ export const bookingPaymentStatusTemplate = ({
 </html>`;
 };
 
+export const resetPasswordTemplate = ({
   otp,
   typeLabel = "password reset",
   expiryMinutes = 10,
