@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, CheckCircle2, Clock, RefreshCw, X, Trash } from "lucide-react";
+import { Bell, ChevronRight, Clock, RefreshCw, Trash } from "lucide-react";
 import { useNotifications } from "@/hooks/use-notifications";
 import { cn } from "@/lib/utils";
 import LoaderState from "@/components/shared/loader-state";
@@ -43,9 +43,9 @@ export default function NotificationsPage() {
     deleteNotification,
   } = useNotifications();
   const [activeTab, setActiveTab] = useState<"all" | "unread" | "read">("all");
-  const [selectedNotification, setSelectedNotification] = useState<any | null>(
-    null,
-  );
+  const [selectedNotificationId, setSelectedNotificationId] = useState<
+    string | null
+  >(null);
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {
@@ -57,17 +57,16 @@ export default function NotificationsPage() {
   };
 
   const handleNotificationClick = async (notification: any) => {
-    setSelectedNotification(notification);
+    setSelectedNotificationId(notification.id);
     if (!notification.isRead) {
       await handleMarkAsRead(notification.id);
     } else {
-      // If already read, still show details but switch to read tab for consistency
       setActiveTab("read");
     }
   };
 
   const handleCloseDetail = () => {
-    setSelectedNotification(null);
+    setSelectedNotificationId(null);
   };
 
   const filteredNotifications = notifications.filter((notification) => {
@@ -186,64 +185,68 @@ export default function NotificationsPage() {
                       <p className="text-sm text-foreground mb-1">
                         {notification.description}
                       </p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Clock className="w-3 h-3" />
-                        {new Date(notification.timestamp).toLocaleString()}
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="flex flex-col items-end gap-2">
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {new Date(notification.timestamp).toLocaleString()}
+                        </span>
                         <Badge variant="outline" className="text-xs uppercase">
                           {isRead ? "Read" : "New"}
                         </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(notification.timestamp).toLocaleString()}
-                        </span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedNotification(notification);
-                            if (!isRead) handleMarkAsRead(notification.id);
-                          }}
-                          className="h-8 w-8">
-                          <X className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            await deleteNotification(notification.id);
-                            if (selectedNotification?.id === notification.id) {
-                              setSelectedNotification(null);
-                            }
-                          }}
-                          className="h-8 w-8 text-destructive">
-                          <Trash className="h-4 w-4" />
-                        </Button>
-                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleNotificationClick(notification);
+                        }}
+                        className="h-8 w-8">
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          await deleteNotification(notification.id);
+                          if (selectedNotificationId === notification.id) {
+                            handleCloseDetail();
+                          }
+                        }}
+                        className="h-8 w-8 text-destructive">
+                        <Trash className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
 
-                  {selectedNotification?.id === notification.id && (
-                    <div className="mt-4 rounded-lg border-t pt-4">
-                      <p className="text-sm text-foreground mb-2">
-                        {notification.description}
-                      </p>
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="text-xs text-muted-foreground">
-                          <Clock className="w-3 h-3 inline mr-1" />
-                          {new Date(notification.timestamp).toLocaleString()}
+                  {selectedNotificationId === notification.id && (
+                    <div className="mt-4 rounded-xl border border-border bg-muted p-4">
+                      <div className="flex flex-col gap-3">
+                        <div className="space-y-2">
+                          <p className="text-sm text-foreground font-medium">
+                            Notification details
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {notification.description}
+                          </p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+                          <div className="inline-flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {new Date(notification.timestamp).toLocaleString()}
+                          </div>
+                          <div className="text-right">
+                            Status: {isRead ? "Read" : "Unread"}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
                           <Button
                             variant="secondary"
                             size="sm"
-                            onClick={() => setSelectedNotification(null)}>
+                            onClick={handleCloseDetail}>
                             Close
                           </Button>
                           <Button
@@ -251,9 +254,9 @@ export default function NotificationsPage() {
                             size="sm"
                             onClick={async () => {
                               await deleteNotification(notification.id);
-                              setSelectedNotification(null);
+                              handleCloseDetail();
                             }}>
-                            Delete
+                            Delete notification
                           </Button>
                         </div>
                       </div>
