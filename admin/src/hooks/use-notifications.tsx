@@ -118,6 +118,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const updated = prev.map((n) => (n.id === id ? { ...n, isRead: true } : n));
       const newUnreadCount = updated.filter(n => !n.isRead).length;
       console.log('[markAsRead] After:', { newUnreadCount });
+      // Update unreadCount immediately
+      setUnreadCount(newUnreadCount);
       return updated;
     });
   }, [notifications]);

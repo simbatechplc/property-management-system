@@ -101,6 +101,8 @@ export default function NotificationsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
+  console.log('[NotificationsPage] Render:', { unreadCount, notificationsLength: notifications.length });
+
   const selectedNotification = notifications.find(n => n.id === selectedId);
 
   const filtered = notifications.filter(n => {
