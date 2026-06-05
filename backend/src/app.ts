@@ -40,7 +40,7 @@ const corsOriginFn = (origin: string | undefined, callback: (err: Error | null, 
   callback(new Error(`CORS blocked: ${origin}`));
 };
 
-app.use(cors({ origin: corsOriginFn, methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], credentials: true }));
+app.use(cors({ origin: corsOriginFn, methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], credentials: true }));
 
 // ---------- Socket.IO ----------
 export const io = new SocketIOServer(server, {
