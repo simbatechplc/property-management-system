@@ -46,21 +46,7 @@ router.get(
   })
 );
 
-// Helper: get read notification IDs for a user from DB (stored in user metadata via raw SQL)
-async function getReadIds(userId: string): Promise<Set<string>> {
-  try {
-    // Use a simple key-value approach — store in a dedicated table if it exists, else fallback
-    const rows = await prisma.$queryRawUnsafe<Array<{ activityId: string }>>(
-      `SELECT "activityId" FROM "notification_read" WHERE "userId" = $1`,
-      userId
-    );
-    return new Set(rows.map(r => r.activityId));
-  } catch {
-    return new Set<string>();
-  }
-}
-
-// 🔔 GET notifications with DB-based read status
+// 🔔 GET notifications
 router.get(
   "/notifications",
   authGuard({ accessedBy: ["ADMIN", "OWNER", "STAFF", "BROKER"] }),
@@ -93,63 +79,31 @@ router.get(
       }
     }
 
-    const [activities, readSet] = await Promise.all([
-      prisma.activity.findMany({
-        where,
-        include: { user: { select: { id: true, name: true, email: true } } },
-        orderBy: { timestamp: "desc" },
-        take: Number(limit),
-      }),
-      getReadIds(userId),
-    ]);
+    const activities = await prisma.activity.findMany({
+      where,
+      include: { user: { select: { id: true, name: true, email: true } } },
+      orderBy: { timestamp: "desc" },
+      take: Number(limit),
+    });
 
-    const notifications = activities.map(n => ({
-      ...n,
-      isRead: readSet.has(n.id),
-    }));
+    const unreadCount = activities.filter(n => !n.isRead).length;
 
-    const unreadCount = notifications.filter(n => !n.isRead).length;
-
-    res.json({ data: notifications, unreadCount });
+    res.json({ data: activities, unreadCount });
   })
 );
 
-// 🔔 PATCH mark notification as read — persists to DB
-router.patch(
+// 🔔 POST mark notification as read
+router.post(
   "/notifications/:id/read",
   authGuard({ cantAccessBy: ["GUEST"] }),
   tryCatch(async (req, res) => {
-    const userId = (req as any).user.id;
     const { id } = req.params;
-    try {
-      // Ensure the notification_read table exists and insert
-      await prisma.$executeRawUnsafe(
-        `INSERT INTO "notification_read" ("id", "userId", "activityId", "createdAt")
-         VALUES (gen_random_uuid()::text, $1, $2, NOW())
-         ON CONFLICT ("userId", "activityId") DO NOTHING`,
-        userId, id
-      );
-    } catch (err: any) {
-      // Table might not exist yet — create it and retry
-      try {
-        await prisma.$executeRawUnsafe(`
-          CREATE TABLE IF NOT EXISTS "notification_read" (
-            "id" TEXT NOT NULL,
-            "userId" TEXT NOT NULL,
-            "activityId" TEXT NOT NULL,
-            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            CONSTRAINT "notification_read_pkey" PRIMARY KEY ("id"),
-            CONSTRAINT "notification_read_userId_activityId_key" UNIQUE ("userId", "activityId")
-          )
-        `);
-        await prisma.$executeRawUnsafe(
-          `INSERT INTO "notification_read" ("id", "userId", "activityId", "createdAt")
-           VALUES (gen_random_uuid()::text, $1, $2, NOW())
-           ON CONFLICT ("userId", "activityId") DO NOTHING`,
-          userId, id
-        );
-      } catch {}
-    }
+    
+    await prisma.activity.update({
+      where: { id },
+      data: { isRead: true },
+    });
+
     res.json({ success: true });
   })
 );

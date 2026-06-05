@@ -100,6 +100,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const markAsRead = useCallback((id: string) => {
+    console.log('[markAsRead] Before:', { id, unreadCount: notifications.filter(n => !n.isRead).length });
+    
     // Update localStorage
     const userId = getCurrentUserId();
     const localRead = loadLocalReadSet(userId);
@@ -107,10 +109,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     saveLocalReadSet(userId, localRead);
 
     // Update state immediately
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
-    );
-  }, []);
+    setNotifications((prev) => {
+      const updated = prev.map((n) => (n.id === id ? { ...n, isRead: true } : n));
+      console.log('[markAsRead] After:', { unreadCount: updated.filter(n => !n.isRead).length });
+      return updated;
+    });
+  }, [notifications]);
 
   const deleteNotification = useCallback(
     async (id: string) => {

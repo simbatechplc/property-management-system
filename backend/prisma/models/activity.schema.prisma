@@ -12,6 +12,9 @@ model Activity {
 
   description String?
 
+  // Track if this notification has been read
+  isRead Boolean @default(false)
+
   // Optional relations
   booking   Booking? @relation(fields: [bookingId], references: [id])
   bookingId String?
