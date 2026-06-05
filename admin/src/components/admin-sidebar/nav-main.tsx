@@ -118,6 +118,8 @@ export function NavMain({ role }: NavMainProps) {
   const pathname = usePathname();
   const links = roleSidebarLinks[role] || [];
   const { unreadCount } = useNotifications();
+  
+  console.log('[NavMain] Render with unreadCount:', unreadCount);
 
   // Track which collapsible sections are open
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({

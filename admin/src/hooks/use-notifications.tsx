@@ -76,6 +76,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   // Update unreadCount whenever notifications change
   useEffect(() => {
     const count = notifications.filter((n) => !n.isRead).length;
+    console.log('[useEffect] Updating unreadCount:', { count, totalNotifications: notifications.length });
     setUnreadCount(count);
   }, [notifications]);
 
@@ -105,16 +106,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const markAsRead = useCallback((id: string) => {
+    console.log('[markAsRead] Called with id:', id);
+    
     // Update localStorage
     const userId = getCurrentUserId();
     const localRead = loadLocalReadSet(userId);
     localRead.add(id);
     saveLocalReadSet(userId, localRead);
+    console.log('[markAsRead] Updated localStorage');
 
     // Update state - useEffect will automatically recalculate unreadCount
-    setNotifications((prev) => 
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-    );
+    setNotifications((prev) => {
+      const updated = prev.map((n) => (n.id === id ? { ...n, isRead: true } : n));
+      console.log('[markAsRead] Updated notifications state, unread count:', updated.filter(n => !n.isRead).length);
+      return updated;
+    });
   }, []);
 
   const deleteNotification = useCallback(
