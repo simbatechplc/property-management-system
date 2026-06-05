@@ -6,6 +6,8 @@ import {
 } from "./validators/booking.validator";
 import { initializeChapaPayment } from "../services/payments.service";
 import { chapaConfig } from "../config/chapa";
+import { sendEmail } from "../utils/email";
+import { bookingPaymentStatusTemplate } from "../templates";
 
 export default {
   bookNow: tryCatch(async (req, res, next) => {
@@ -1009,6 +1011,59 @@ export default {
       : isOwnerCancelRejection
       ? "Broker rejection cancelled. Booking returned to pending."
       : `Booking ${effectiveStatus.toLowerCase()} successfully.`;
+
+    // Send email notification to guest when admin APPROVES or REJECTS a booking
+    if (!isBrokerAction && !isOwnerCancelRejection && ["APPROVED", "REJECTED"].includes(effectiveStatus)) {
+      try {
+        const fullBooking = await prisma.booking.findUnique({
+          where: { id: bookingId },
+          include: {
+            user: { select: { name: true, email: true } },
+            property: { select: { name: true } },
+            room: { select: { name: true } },
+            paymentSubmission: { select: { amountPaid: true, referenceNumber: true } },
+          },
+        });
+
+        const customerEmail = (fullBooking as any)?.user?.email || (fullBooking as any)?.guestEmail;
+        const customerName = (fullBooking as any)?.user?.name || (fullBooking as any)?.guestName || "Guest";
+
+        if (customerEmail && fullBooking) {
+          const clientUrl = process.env.CLIENT_FRONTEND_URL || "https://property-management-system-wine.vercel.app";
+          const checkIn = new Date(fullBooking.checkIn).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+          const checkOut = new Date(fullBooking.checkOut).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+          const amountPaid = (fullBooking as any)?.paymentSubmission?.amountPaid
+            || Number((fullBooking as any)?.totalAmount) || 0;
+          const referenceNumber = (fullBooking as any)?.paymentSubmission?.referenceNumber || bookingId.slice(0, 8);
+
+          const emailSubject = effectiveStatus === "APPROVED"
+            ? "✅ Your booking has been approved – Kuru Rent"
+            : "❌ Your booking has been rejected – Kuru Rent";
+
+          await sendEmail({
+            to: customerEmail,
+            subject: emailSubject,
+            html: bookingPaymentStatusTemplate({
+              customerName,
+              status: effectiveStatus as "APPROVED" | "REJECTED",
+              propertyName: (fullBooking as any)?.property?.name || "Property",
+              roomName: (fullBooking as any)?.room?.name || "Room",
+              checkIn,
+              checkOut,
+              amountPaid,
+              referenceNumber,
+              rejectionReason: effectiveStatus === "REJECTED" ? (reason || undefined) : undefined,
+              bookingsUrl: `${clientUrl}/account/bookings`,
+            }),
+          });
+          console.log(`[BOOKING EMAIL] Sent ${effectiveStatus} email to ${customerEmail}`);
+        } else {
+          console.warn(`[BOOKING EMAIL] No email for booking ${bookingId} — customerEmail: ${customerEmail}`);
+        }
+      } catch (emailErr: any) {
+        console.error(`[BOOKING EMAIL] Failed for booking ${bookingId}:`, emailErr?.response?.data || emailErr?.message);
+      }
+    }
 
     return res.status(200).json({ message: responseMessage, success: true });
   }),
