@@ -8,6 +8,7 @@ import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import React, { ReactNode, useEffect, useState } from "react";
 import { NotificationProvider } from "@/hooks/use-notifications";
+import { AdminChatWidget } from "@/components/admin-chat-widget";
 
 const ADMIN_TOKEN_KEY = "admin_session_token";
 const ADMIN_USER_KEY = "admin_session_user";
@@ -70,6 +71,8 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
           <div className="flex flex-1 flex-col overflow-x-hidden">{children}</div>
         </SidebarInset>
       </SidebarProvider>
+      {/* Floating chat widget — visible to BROKER and OWNER only */}
+      <AdminChatWidget />
     </NotificationProvider>
   );
 };
