@@ -80,15 +80,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         (n: Notification) => n.description !== "__DELETED__",
       );
 
-      // Merge server read state with client-side local read set (per-user)
-      const userId = getCurrentUserId();
-      const localRead = loadLocalReadSet(userId);
-      const data = raw.map((n) => ({
-        ...n,
-        isRead: Boolean(n.isRead || localRead.has(n.id)),
-      }));
-
-      setNotifications(data);
+      // Use server read state as the source of truth
+      // The backend already returns isRead from the database
+      setNotifications(raw);
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     } finally {
@@ -107,14 +101,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     try {
       // Persist to backend database
       await api.patch(`/activities/notifications/${id}/read`);
-      
-      // Also update localStorage as a backup (for offline resilience)
-      const userId = getCurrentUserId();
-      const localRead = loadLocalReadSet(userId);
-      if (!localRead.has(id)) {
-        localRead.add(id);
-        saveLocalReadSet(userId, localRead);
-      }
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
       // Revert optimistic update on failure
@@ -130,15 +116,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
       try {
         await api.delete(`/activities/notifications/${id}`);
-        // Also remove from local read set if present
-        try {
-          const userId = getCurrentUserId();
-          const localRead = loadLocalReadSet(userId);
-          if (localRead.has(id)) {
-            localRead.delete(id);
-            saveLocalReadSet(userId, localRead);
-          }
-        } catch {}
       } catch (error) {
         console.error("Failed to delete notification:", error);
         // Refetch to restore correct state
