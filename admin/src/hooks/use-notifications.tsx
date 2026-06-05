@@ -10,6 +10,38 @@ import {
 } from "react";
 import { api } from "@/hooks/api";
 
+const ADMIN_USER_KEY = "admin_session_user";
+const LOCAL_READ_PREFIX = "admin_notification_read_";
+
+function getCurrentUserId(): string | null {
+  try {
+    const raw = typeof window !== "undefined" ? localStorage.getItem(ADMIN_USER_KEY) : null;
+    if (!raw) return null;
+    const u = JSON.parse(raw);
+    return u?.id || null;
+  } catch {
+    return null;
+  }
+}
+
+function loadLocalReadSet(userId: string | null) {
+  try {
+    const key = `${LOCAL_READ_PREFIX}${userId || "anonymous"}`;
+    const raw = typeof window !== "undefined" ? localStorage.getItem(key) : null;
+    if (!raw) return new Set<string>();
+    return new Set<string>(JSON.parse(raw));
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function saveLocalReadSet(userId: string | null, set: Set<string>) {
+  try {
+    const key = `${LOCAL_READ_PREFIX}${userId || "anonymous"}`;
+    if (typeof window !== "undefined") localStorage.setItem(key, JSON.stringify(Array.from(set)));
+  } catch {}
+}
+
 interface Notification {
   id: string;
   action: string;
@@ -39,9 +71,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       const res = await api.get("/activities/notifications?limit=50");
-      const data: Notification[] = (res.data?.data || []).filter(
+      const raw: Notification[] = (res.data?.data || []).filter(
         (n: Notification) => n.description !== "__DELETED__",
       );
+
+      // Merge server read state with client-side local read set (per-user)
+      const userId = getCurrentUserId();
+      const localRead = loadLocalReadSet(userId);
+      const data = raw.map((n) => ({ ...n, isRead: Boolean(n.isRead || localRead.has(n.id)) }));
+
       setNotifications(data);
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
@@ -52,27 +90,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  const markAsRead = useCallback(
-    async (id: string) => {
-      // Optimistic update
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
-      );
+  const markAsRead = useCallback(async (id: string) => {
+    // Client-side persistent approach (localStorage per-user) — no DB calls
+    const userId = getCurrentUserId();
+    const localRead = loadLocalReadSet(userId);
+    if (!localRead.has(id)) {
+      localRead.add(id);
+      saveLocalReadSet(userId, localRead);
+    }
 
-      try {
-        // Persist to DB and then refresh to ensure server state is authoritative
-        await api.patch(`/activities/notifications/${id}/read`);
-        await fetchNotifications();
-      } catch (err) {
-        // Revert on failure and surface a console error
-        console.error("Failed to mark notification read:", err);
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === id ? { ...n, isRead: false } : n)),
-        );
-      }
-    },
-    [fetchNotifications],
-  );
+    // Update in-memory state
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+  }, []);
 
   const deleteNotification = useCallback(
     async (id: string) => {
@@ -80,6 +109,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
       try {
         await api.delete(`/activities/notifications/${id}`);
+        // Also remove from local read set if present
+        try {
+          const userId = getCurrentUserId();
+          const localRead = loadLocalReadSet(userId);
+          if (localRead.has(id)) {
+            localRead.delete(id);
+            saveLocalReadSet(userId, localRead);
+          }
+        } catch {}
       } catch (error) {
         console.error("Failed to delete notification:", error);
         // Refetch to restore correct state
