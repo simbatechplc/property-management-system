@@ -80,6 +80,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         (n: Notification) => n.description !== "__DELETED__",
       );
 
+      console.log('[fetchNotifications] Fetched notifications:', {
+        total: raw.length,
+        unread: raw.filter(n => !n.isRead).length,
+        read: raw.filter(n => n.isRead).length,
+        sample: raw.slice(0, 3).map(n => ({ id: n.id, action: n.action, isRead: n.isRead }))
+      });
+
       // Use server read state as the source of truth
       // The backend already returns isRead from the database
       setNotifications(raw);
@@ -93,6 +100,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const markAsRead = useCallback(async (id: string) => {
+    console.log('[markAsRead] Marking notification as read:', id);
+    
     // Optimistically update in-memory state first
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
@@ -100,9 +109,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     try {
       // Persist to backend database
-      await api.patch(`/activities/notifications/${id}/read`);
+      const response = await api.patch(`/activities/notifications/${id}/read`);
+      console.log('[markAsRead] Success:', response.data);
     } catch (error) {
-      console.error("Failed to mark notification as read:", error);
+      console.error("[markAsRead] Failed to mark notification as read:", error);
       // Revert optimistic update on failure
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, isRead: false } : n)),
