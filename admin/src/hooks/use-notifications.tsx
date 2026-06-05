@@ -60,7 +60,7 @@ interface NotificationContextType {
   unreadCount: number;
   loading: boolean;
   fetchNotifications: () => Promise<void>;
-  markAsRead: (id: string) => Promise<void>;
+  markAsRead: (id: string) => void;
   deleteNotification: (id: string) => Promise<void>;
 }
 
@@ -80,16 +80,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         (n: Notification) => n.description !== "__DELETED__",
       );
 
-      console.log('[fetchNotifications] Fetched notifications:', {
-        total: raw.length,
-        unread: raw.filter(n => !n.isRead).length,
-        read: raw.filter(n => n.isRead).length,
-        sample: raw.slice(0, 3).map(n => ({ id: n.id, action: n.action, isRead: n.isRead }))
-      });
+      // Load read status from localStorage
+      const userId = getCurrentUserId();
+      const localRead = loadLocalReadSet(userId);
+      
+      const data = raw.map((n) => ({
+        ...n,
+        isRead: localRead.has(n.id),
+      }));
 
-      // Use server read state as the source of truth
-      // The backend already returns isRead from the database
-      setNotifications(raw);
+      setNotifications(data);
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     } finally {
@@ -99,25 +99,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  const markAsRead = useCallback(async (id: string) => {
-    console.log('[markAsRead] Marking notification as read:', id);
-    
-    // Optimistically update in-memory state first
+  const markAsRead = useCallback((id: string) => {
+    // Update localStorage
+    const userId = getCurrentUserId();
+    const localRead = loadLocalReadSet(userId);
+    localRead.add(id);
+    saveLocalReadSet(userId, localRead);
+
+    // Update state immediately
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
     );
-
-    try {
-      // Persist to backend database
-      const response = await api.patch(`/activities/notifications/${id}/read`);
-      console.log('[markAsRead] Success:', response.data);
-    } catch (error) {
-      console.error("[markAsRead] Failed to mark notification as read:", error);
-      // Revert optimistic update on failure
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: false } : n)),
-      );
-    }
   }, []);
 
   const deleteNotification = useCallback(
@@ -126,9 +118,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
       try {
         await api.delete(`/activities/notifications/${id}`);
+        // Also remove from localStorage
+        const userId = getCurrentUserId();
+        const localRead = loadLocalReadSet(userId);
+        if (localRead.has(id)) {
+          localRead.delete(id);
+          saveLocalReadSet(userId, localRead);
+        }
       } catch (error) {
         console.error("Failed to delete notification:", error);
-        // Refetch to restore correct state
         fetchNotifications();
       }
     },
