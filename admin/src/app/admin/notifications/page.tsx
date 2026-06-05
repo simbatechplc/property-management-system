@@ -1,3 +1,4 @@
+// Notifications page v2 - with persistent read status and optimistic updates
 "use client";
 
 import { useState } from "react";
