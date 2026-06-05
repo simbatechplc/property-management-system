@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useEffect, createContext, useContext, useCallback, ReactNode } from "react";
+import {
+  useState,
+  useEffect,
+  createContext,
+  useContext,
+  useCallback,
+  ReactNode,
+} from "react";
 import { api } from "@/hooks/api";
 
 interface Notification {
@@ -16,11 +23,13 @@ interface NotificationContextType {
   unreadCount: number;
   loading: boolean;
   fetchNotifications: () => Promise<void>;
-  markAsRead: (id: string) => void;
+  markAsRead: (id: string) => Promise<void>;
   deleteNotification: (id: string) => Promise<void>;
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+const NotificationContext = createContext<NotificationContextType | undefined>(
+  undefined,
+);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -31,7 +40,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     try {
       const res = await api.get("/activities/notifications?limit=50");
       const data: Notification[] = (res.data?.data || []).filter(
-        (n: Notification) => n.description !== "__DELETED__"
+        (n: Notification) => n.description !== "__DELETED__",
       );
       setNotifications(data);
     } catch (error) {
@@ -41,33 +50,44 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  const markAsRead = useCallback((id: string) => {
-    // Optimistic update
-    setNotifications(prev =>
-      prev.map(n => n.id === id ? { ...n, isRead: true } : n)
-    );
-    // Persist to DB
-    api.patch(`/activities/notifications/${id}/read`).catch(() => {
-      // Revert on failure
-      setNotifications(prev =>
-        prev.map(n => n.id === id ? { ...n, isRead: false } : n)
+  const markAsRead = useCallback(
+    async (id: string) => {
+      // Optimistic update
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
       );
-    });
-  }, []);
 
-  const deleteNotification = useCallback(async (id: string) => {
-    // Optimistic remove
-    setNotifications(prev => prev.filter(n => n.id !== id));
-    try {
-      await api.delete(`/activities/notifications/${id}`);
-    } catch (error) {
-      console.error("Failed to delete notification:", error);
-      // Refetch to restore correct state
-      fetchNotifications();
-    }
-  }, [fetchNotifications]);
+      try {
+        // Persist to DB and then refresh to ensure server state is authoritative
+        await api.patch(`/activities/notifications/${id}/read`);
+        await fetchNotifications();
+      } catch (err) {
+        // Revert on failure and surface a console error
+        console.error("Failed to mark notification read:", err);
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === id ? { ...n, isRead: false } : n)),
+        );
+      }
+    },
+    [fetchNotifications],
+  );
+
+  const deleteNotification = useCallback(
+    async (id: string) => {
+      // Optimistic remove
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      try {
+        await api.delete(`/activities/notifications/${id}`);
+      } catch (error) {
+        console.error("Failed to delete notification:", error);
+        // Refetch to restore correct state
+        fetchNotifications();
+      }
+    },
+    [fetchNotifications],
+  );
 
   useEffect(() => {
     fetchNotifications();
@@ -76,7 +96,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [fetchNotifications]);
 
   return (
-    <NotificationContext.Provider value={{ notifications, unreadCount, loading, fetchNotifications, markAsRead, deleteNotification }}>
+    <NotificationContext.Provider
+      value={{
+        notifications,
+        unreadCount,
+        loading,
+        fetchNotifications,
+        markAsRead,
+        deleteNotification,
+      }}>
       {children}
     </NotificationContext.Provider>
   );
@@ -84,6 +112,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
 export function useNotifications() {
   const context = useContext(NotificationContext);
-  if (!context) throw new Error("useNotifications must be used within a NotificationProvider");
+  if (!context)
+    throw new Error(
+      "useNotifications must be used within a NotificationProvider",
+    );
   return context;
 }
