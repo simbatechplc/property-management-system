@@ -6,9 +6,9 @@ import LoaderState from "@/components/shared/loader-state";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
-  Bell, BellRing, RefreshCw, Trash2, ChevronRight,
-  Calendar, Building2, CreditCard, UserCheck, X, Clock,
-  AlertTriangle, CheckCircle2, XCircle, Info, FileText,
+  Bell, BellRing, RefreshCw, Trash2, ChevronRight, Calendar,
+  Building2, CreditCard, UserCheck, X, Clock, AlertTriangle,
+  CheckCircle2, XCircle, Info, FileText,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 
@@ -31,6 +31,69 @@ function getConfig(action: string) {
 
 type Tab = "all" | "unread" | "read";
 
+// Mobile Modal Component
+function NotificationModal({ notification, onClose, onDelete }: { notification: any; onClose: () => void; onDelete: (id: string) => void }) {
+  const config = getConfig(notification.action);
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div
+        className="relative w-full sm:max-w-lg bg-background rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className={cn("flex items-center justify-between px-5 py-4 border-b border-border", config.bg)}>
+          <div className="flex items-center gap-3">
+            <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center", config.bg)}>
+              <span className={config.color}>{config.icon}</span>
+            </div>
+            <div>
+              <p className={cn("text-sm font-bold", config.color)}>{config.label}</p>
+              <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-5 space-y-4">
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Description</p>
+            <p className="text-sm text-foreground leading-relaxed">{notification.description}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 rounded-xl bg-muted/50">
+              <p className="text-xs text-muted-foreground mb-1">Date & Time</p>
+              <p className="text-xs font-semibold">{format(new Date(notification.timestamp), "MMM d, yyyy")}</p>
+              <p className="text-xs text-muted-foreground">{format(new Date(notification.timestamp), "h:mm a")}</p>
+            </div>
+            <div className="p-3 rounded-xl bg-muted/50">
+              <p className="text-xs text-muted-foreground mb-1">Status</p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className={cn("w-2 h-2 rounded-full", notification.isRead ? "bg-emerald-500" : "bg-red-500")} />
+                <p className="text-xs font-semibold">{notification.isRead ? "Read" : "Unread"}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" className="flex-1" onClick={onClose}>Close</Button>
+            <Button variant="destructive" className="flex-1 gap-2" onClick={() => { onDelete(notification.id); onClose(); }}>
+              <Trash2 className="w-3.5 h-3.5" /> Delete
+            </Button>
+          </div>
+        </div>
+
+        {/* Bottom safe area for mobile */}
+        <div className="h-safe-area-inset-bottom sm:hidden" />
+      </div>
+    </div>
+  );
+}
+
 export default function NotificationsPage() {
   const { notifications, unreadCount, loading, fetchNotifications, markAsRead, deleteNotification } = useNotifications();
   const [activeTab, setActiveTab] = useState<Tab>("all");
@@ -47,9 +110,7 @@ export default function NotificationsPage() {
 
   const handleNotificationClick = (notification: any) => {
     setSelectedId(notification.id);
-    if (!notification.isRead) {
-      markAsRead(notification.id);
-    }
+    if (!notification.isRead) markAsRead(notification.id);
   };
 
   const handleDelete = async (id: string, e?: React.MouseEvent) => {
@@ -70,6 +131,17 @@ export default function NotificationsPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Mobile Modal */}
+      {selectedNotification && (
+        <div className="lg:hidden">
+          <NotificationModal
+            notification={selectedNotification}
+            onClose={() => setSelectedId(null)}
+            onDelete={handleDelete}
+          />
+        </div>
+      )}
+
       <div className="max-w-6xl mx-auto px-4 py-6 sm:px-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -122,8 +194,8 @@ export default function NotificationsPage() {
           ))}
         </div>
 
-        {/* Content */}
-        <div className={cn("grid gap-6", selectedNotification ? "grid-cols-1 lg:grid-cols-[1fr_380px]" : "grid-cols-1")}>
+        {/* Content — side-by-side on desktop, modal on mobile */}
+        <div className={cn("grid gap-6", selectedNotification ? "lg:grid-cols-[1fr_380px]" : "grid-cols-1")}>
           {/* List */}
           <div className="space-y-2">
             {filtered.length === 0 ? (
@@ -202,9 +274,9 @@ export default function NotificationsPage() {
             )}
           </div>
 
-          {/* Detail Panel */}
+          {/* Desktop detail panel only */}
           {selectedNotification && (
-            <div className="sticky top-6 h-fit">
+            <div className="hidden lg:block sticky top-6 h-fit">
               <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
                 <div className={cn("flex items-center justify-between px-5 py-4 border-b border-border", getConfig(selectedNotification.action).bg)}>
                   <div className="flex items-center gap-2">

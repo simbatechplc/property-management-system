@@ -75,3 +75,15 @@ enum ActivityStatus {
   ERROR
   CRITICAL
 }
+
+// Track which notifications each user has read — persists across logins
+model NotificationRead {
+  id         String   @id @default(cuid())
+  userId     String
+  activityId String
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, activityId])
+  @@index([userId])
+  @@map("notification_read")
+}

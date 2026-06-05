@@ -5,6 +5,7 @@ import { authGuard } from "../../middleware/auth-middleware";
 
 const router = Router();
 
+// General activities list (for admin activities page)
 router.get(
   "/",
   authGuard({ cantAccessBy: ["GUEST"] }),
@@ -34,9 +35,7 @@ router.get(
     const [activities, total] = await Promise.all([
       prisma.activity.findMany({
         where,
-        include: {
-          user: { select: { id: true, name: true, email: true } },
-        },
+        include: { user: { select: { id: true, name: true, email: true } } },
         orderBy: { timestamp: "desc" },
         skip,
         take: Number(limit),
@@ -48,90 +47,7 @@ router.get(
   })
 );
 
-// 🔔 Admin notifications endpoint — returns recent important activities
-router.get(
-  "/notifications",
-  authGuard({ accessedBy: ["ADMIN", "OWNER", "STAFF", "BROKER"] }),
-  tryCatch(async (req, res) => {
-    const userId = (req as any).user.id;
-    const userRole = (req as any).user.role;
-    const { limit = 20 } = req.query;
-
-    // Notification-worthy actions
-    const notifActions = ["BOOKED", "APPROVED_BOOKING", "REJECTED_BOOKING", "CANCELLED_BOOKING", "CREATE_GUEST_HOUSE", "REGISTRATION_REQUEST"];
-
-    let where: any = { action: { in: notifActions } };
-
-    if (userRole !== "ADMIN") {
-      const managed = await prisma.managedProperty.findMany({
-        where: { userId },
-        select: { propertyId: true },
-      });
-      const propertyIds = managed.map((m) => m.propertyId);
-      if (propertyIds.length) {
-        where = { ...where, propertyId: { in: propertyIds } };
-      } else {
-        where = { ...where, userId };
-      }
-    }
-
-    const notifications = await prisma.activity.findMany({
-      where,
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-      },
-      orderBy: { timestamp: "desc" },
-      take: Number(limit),
-    });
-
-    // Count unread (created in last 24 hours)
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const unreadCount = notifications.filter(n => new Date(n.timestamp) > oneDayAgo).length;
-
-    res.json({ data: notifications, unreadCount });
-  })
-);
-
-// 🔔 Mark notification as read (stores read IDs in a simple in-memory map per session)
-// Since Activity model has no isRead field, we use a separate table or store read IDs in client
-// For simplicity, we use a server-side in-memory set per user (resets on restart)
-const readNotifications = new Map<string, Set<string>>(); // userId -> Set of activityIds
-
-router.patch(
-  "/notifications/:id/read",
-  authGuard({ cantAccessBy: ["GUEST"] }),
-  tryCatch(async (req, res) => {
-    const userId = (req as any).user.id;
-    const { id } = req.params;
-    if (!readNotifications.has(userId)) readNotifications.set(userId, new Set());
-    readNotifications.get(userId)!.add(id);
-    res.json({ success: true });
-  })
-);
-
-// 🗑️ Delete notification (activity) — soft delete by marking as hidden
-router.delete(
-  "/notifications/:id",
-  authGuard({ cantAccessBy: ["GUEST"] }),
-  tryCatch(async (req, res) => {
-    const { id } = req.params;
-    try {
-      // Try hard delete first
-      await prisma.activity.delete({ where: { id } });
-    } catch {
-      // If FK constraint prevents deletion, update description to mark as deleted
-      try {
-        await prisma.activity.update({
-          where: { id },
-          data: { description: "__DELETED__" },
-        });
-      } catch {}
-    }
-    res.json({ success: true });
-  })
-);
-
-// Override the notifications endpoint to include read status
+// 🔔 GET notifications with persistent DB-based read status
 router.get(
   "/notifications",
   authGuard({ accessedBy: ["ADMIN", "OWNER", "STAFF", "BROKER"] }),
@@ -140,9 +56,16 @@ router.get(
     const userRole = (req as any).user.role;
     const { limit = 50 } = req.query;
 
-    const notifActions = ["BOOKED", "APPROVED_BOOKING", "REJECTED_BOOKING", "CANCELLED_BOOKING", "CREATE_GUEST_HOUSE", "REGISTRATION_REQUEST", "PAYMENT_SUCCESS", "PAYMENT_FAILED", "REPORT_SUBMITTED"];
+    const notifActions = [
+      "BOOKED", "APPROVED_BOOKING", "REJECTED_BOOKING", "CANCELLED_BOOKING",
+      "CREATE_GUEST_HOUSE", "REGISTRATION_REQUEST", "PAYMENT_SUCCESS",
+      "PAYMENT_FAILED", "REPORT_SUBMITTED",
+    ];
 
-    let where: any = { action: { in: notifActions } };
+    let where: any = {
+      action: { in: notifActions },
+      description: { not: "__DELETED__" },
+    };
 
     if (userRole !== "ADMIN") {
       const managed = await prisma.managedProperty.findMany({
@@ -157,24 +80,68 @@ router.get(
       }
     }
 
-    const activities = await prisma.activity.findMany({
-      where,
-      include: { user: { select: { id: true, name: true, email: true } } },
-      orderBy: { timestamp: "desc" },
-      take: Number(limit),
-    });
+    const [activities, readRecords] = await Promise.all([
+      prisma.activity.findMany({
+        where,
+        include: { user: { select: { id: true, name: true, email: true } } },
+        orderBy: { timestamp: "desc" },
+        take: Number(limit),
+      }),
+      // Get all read notification IDs for this user
+      (prisma as any).notificationRead.findMany({
+        where: { userId },
+        select: { activityId: true },
+      }),
+    ]);
 
-    const userReadSet = readNotifications.get(userId) || new Set<string>();
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const readSet = new Set<string>(readRecords.map((r: any) => r.activityId));
 
     const notifications = activities.map(n => ({
       ...n,
-      isRead: userReadSet.has(n.id),
+      isRead: readSet.has(n.id),
     }));
 
-    const unreadCount = notifications.filter(n => !n.isRead && new Date(n.timestamp) > oneDayAgo).length;
+    const unreadCount = notifications.filter(n => !n.isRead).length;
 
     res.json({ data: notifications, unreadCount });
+  })
+);
+
+// 🔔 PATCH mark notification as read — saves to DB
+router.patch(
+  "/notifications/:id/read",
+  authGuard({ cantAccessBy: ["GUEST"] }),
+  tryCatch(async (req, res) => {
+    const userId = (req as any).user.id;
+    const { id } = req.params;
+    try {
+      await (prisma as any).notificationRead.upsert({
+        where: { userId_activityId: { userId, activityId: id } },
+        create: { userId, activityId: id },
+        update: {},
+      });
+    } catch {}
+    res.json({ success: true });
+  })
+);
+
+// 🗑️ DELETE notification — soft delete by marking description
+router.delete(
+  "/notifications/:id",
+  authGuard({ cantAccessBy: ["GUEST"] }),
+  tryCatch(async (req, res) => {
+    const { id } = req.params;
+    try {
+      await prisma.activity.delete({ where: { id } });
+    } catch {
+      try {
+        await prisma.activity.update({
+          where: { id },
+          data: { description: "__DELETED__" },
+        });
+      } catch {}
+    }
+    res.json({ success: true });
   })
 );
 
