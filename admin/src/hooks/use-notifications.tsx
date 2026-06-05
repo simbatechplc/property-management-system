@@ -15,7 +15,10 @@ const LOCAL_READ_PREFIX = "admin_notification_read_";
 
 function getCurrentUserId(): string | null {
   try {
-    const raw = typeof window !== "undefined" ? localStorage.getItem(ADMIN_USER_KEY) : null;
+    const raw =
+      typeof window !== "undefined"
+        ? localStorage.getItem(ADMIN_USER_KEY)
+        : null;
     if (!raw) return null;
     const u = JSON.parse(raw);
     return u?.id || null;
@@ -27,7 +30,8 @@ function getCurrentUserId(): string | null {
 function loadLocalReadSet(userId: string | null) {
   try {
     const key = `${LOCAL_READ_PREFIX}${userId || "anonymous"}`;
-    const raw = typeof window !== "undefined" ? localStorage.getItem(key) : null;
+    const raw =
+      typeof window !== "undefined" ? localStorage.getItem(key) : null;
     if (!raw) return new Set<string>();
     return new Set<string>(JSON.parse(raw));
   } catch {
@@ -38,7 +42,8 @@ function loadLocalReadSet(userId: string | null) {
 function saveLocalReadSet(userId: string | null, set: Set<string>) {
   try {
     const key = `${LOCAL_READ_PREFIX}${userId || "anonymous"}`;
-    if (typeof window !== "undefined") localStorage.setItem(key, JSON.stringify(Array.from(set)));
+    if (typeof window !== "undefined")
+      localStorage.setItem(key, JSON.stringify(Array.from(set)));
   } catch {}
 }
 
@@ -78,7 +83,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       // Merge server read state with client-side local read set (per-user)
       const userId = getCurrentUserId();
       const localRead = loadLocalReadSet(userId);
-      const data = raw.map((n) => ({ ...n, isRead: Boolean(n.isRead || localRead.has(n.id)) }));
+      const data = raw.map((n) => ({
+        ...n,
+        isRead: Boolean(n.isRead || localRead.has(n.id)),
+      }));
 
       setNotifications(data);
     } catch (error) {
@@ -91,16 +99,29 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const markAsRead = useCallback(async (id: string) => {
-    // Client-side persistent approach (localStorage per-user) — no DB calls
-    const userId = getCurrentUserId();
-    const localRead = loadLocalReadSet(userId);
-    if (!localRead.has(id)) {
-      localRead.add(id);
-      saveLocalReadSet(userId, localRead);
-    }
+    // Optimistically update in-memory state first
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
+    );
 
-    // Update in-memory state
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+    try {
+      // Persist to backend database
+      await api.patch(`/activities/notifications/${id}/read`);
+      
+      // Also update localStorage as a backup (for offline resilience)
+      const userId = getCurrentUserId();
+      const localRead = loadLocalReadSet(userId);
+      if (!localRead.has(id)) {
+        localRead.add(id);
+        saveLocalReadSet(userId, localRead);
+      }
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+      // Revert optimistic update on failure
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, isRead: false } : n)),
+      );
+    }
   }, []);
 
   const deleteNotification = useCallback(
