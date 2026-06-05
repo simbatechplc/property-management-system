@@ -71,6 +71,13 @@ const NotificationContext = createContext<NotificationContextType | undefined>(
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Update unreadCount whenever notifications change
+  useEffect(() => {
+    const count = notifications.filter((n) => !n.isRead).length;
+    setUnreadCount(count);
+  }, [notifications]);
 
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
@@ -97,10 +104,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
-
   const markAsRead = useCallback((id: string) => {
-    console.log('[markAsRead] Before:', { id, unreadCount: notifications.filter(n => !n.isRead).length });
+    console.log('[markAsRead] Before:', { id, currentUnreadCount: notifications.filter(n => !n.isRead).length });
     
     // Update localStorage
     const userId = getCurrentUserId();
@@ -111,7 +116,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     // Update state immediately
     setNotifications((prev) => {
       const updated = prev.map((n) => (n.id === id ? { ...n, isRead: true } : n));
-      console.log('[markAsRead] After:', { unreadCount: updated.filter(n => !n.isRead).length });
+      const newUnreadCount = updated.filter(n => !n.isRead).length;
+      console.log('[markAsRead] After:', { newUnreadCount });
       return updated;
     });
   }, [notifications]);
