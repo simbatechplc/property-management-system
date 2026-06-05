@@ -5,7 +5,7 @@ import { authGuard } from "../../middleware/auth-middleware";
 
 const router = Router();
 
-// General activities list (for admin activities page)
+// General activities list
 router.get(
   "/",
   authGuard({ cantAccessBy: ["GUEST"] }),
@@ -16,7 +16,6 @@ router.get(
     const skip = (Number(page) - 1) * Number(limit);
 
     let where: any = {};
-
     if (userRole === "ADMIN") {
       where = {};
     } else if (userRole === "BROKER") {
@@ -47,7 +46,21 @@ router.get(
   })
 );
 
-// 🔔 GET notifications with persistent DB-based read status
+// Helper: get read notification IDs for a user from DB (stored in user metadata via raw SQL)
+async function getReadIds(userId: string): Promise<Set<string>> {
+  try {
+    // Use a simple key-value approach — store in a dedicated table if it exists, else fallback
+    const rows = await prisma.$queryRawUnsafe<Array<{ activityId: string }>>(
+      `SELECT "activityId" FROM "notification_read" WHERE "userId" = $1`,
+      userId
+    );
+    return new Set(rows.map(r => r.activityId));
+  } catch {
+    return new Set<string>();
+  }
+}
+
+// 🔔 GET notifications with DB-based read status
 router.get(
   "/notifications",
   authGuard({ accessedBy: ["ADMIN", "OWNER", "STAFF", "BROKER"] }),
@@ -64,7 +77,7 @@ router.get(
 
     let where: any = {
       action: { in: notifActions },
-      description: { not: "__DELETED__" },
+      NOT: { description: "__DELETED__" },
     };
 
     if (userRole !== "ADMIN") {
@@ -80,21 +93,15 @@ router.get(
       }
     }
 
-    const [activities, readRecords] = await Promise.all([
+    const [activities, readSet] = await Promise.all([
       prisma.activity.findMany({
         where,
         include: { user: { select: { id: true, name: true, email: true } } },
         orderBy: { timestamp: "desc" },
         take: Number(limit),
       }),
-      // Get all read notification IDs for this user
-      (prisma as any).notificationRead.findMany({
-        where: { userId },
-        select: { activityId: true },
-      }),
+      getReadIds(userId),
     ]);
-
-    const readSet = new Set<string>(readRecords.map((r: any) => r.activityId));
 
     const notifications = activities.map(n => ({
       ...n,
@@ -107,7 +114,7 @@ router.get(
   })
 );
 
-// 🔔 PATCH mark notification as read — saves to DB
+// 🔔 PATCH mark notification as read — persists to DB
 router.patch(
   "/notifications/:id/read",
   authGuard({ cantAccessBy: ["GUEST"] }),
@@ -115,17 +122,39 @@ router.patch(
     const userId = (req as any).user.id;
     const { id } = req.params;
     try {
-      await (prisma as any).notificationRead.upsert({
-        where: { userId_activityId: { userId, activityId: id } },
-        create: { userId, activityId: id },
-        update: {},
-      });
-    } catch {}
+      // Ensure the notification_read table exists and insert
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "notification_read" ("id", "userId", "activityId", "createdAt")
+         VALUES (gen_random_uuid()::text, $1, $2, NOW())
+         ON CONFLICT ("userId", "activityId") DO NOTHING`,
+        userId, id
+      );
+    } catch (err: any) {
+      // Table might not exist yet — create it and retry
+      try {
+        await prisma.$executeRawUnsafe(`
+          CREATE TABLE IF NOT EXISTS "notification_read" (
+            "id" TEXT NOT NULL,
+            "userId" TEXT NOT NULL,
+            "activityId" TEXT NOT NULL,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT "notification_read_pkey" PRIMARY KEY ("id"),
+            CONSTRAINT "notification_read_userId_activityId_key" UNIQUE ("userId", "activityId")
+          )
+        `);
+        await prisma.$executeRawUnsafe(
+          `INSERT INTO "notification_read" ("id", "userId", "activityId", "createdAt")
+           VALUES (gen_random_uuid()::text, $1, $2, NOW())
+           ON CONFLICT ("userId", "activityId") DO NOTHING`,
+          userId, id
+        );
+      } catch {}
+    }
     res.json({ success: true });
   })
 );
 
-// 🗑️ DELETE notification — soft delete by marking description
+// 🗑️ DELETE notification
 router.delete(
   "/notifications/:id",
   authGuard({ cantAccessBy: ["GUEST"] }),
@@ -141,6 +170,10 @@ router.delete(
         });
       } catch {}
     }
+    // Also remove from read table
+    try {
+      await prisma.$executeRawUnsafe(`DELETE FROM "notification_read" WHERE "activityId" = $1`, id);
+    } catch {}
     res.json({ success: true });
   })
 );
