@@ -25,6 +25,8 @@ const allowedOriginPatterns = [
   /^https:\/\/property-management-system[\w-]*\.vercel\.app$/,
   /^https:\/\/property-management-system[\w-]*-mohammed-ahmedins-projects\.vercel\.app$/,
   /^https:\/\/solomongetnet\.pro\.et$/,
+  /^https:\/\/kururent\.com$/,
+  /^https:\/\/www\.kururent\.com$/,
   /^http:\/\/localhost:(4000|5173|3000)$/,
 ];
 
