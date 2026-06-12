@@ -384,13 +384,24 @@ export default function HomePage() {
       </section>
 
       {/* Registration Form Section */}
-      <section id="register" className="py-16 md:py-24 px-4 sm:px-8 md:px-16">
-        <div className="container">
-          <div className="mx-auto max-w-2xl">
-            <RegistrationForm />
-          </div>
-        </div>
-      </section>
+<section id="register" className="py-16 md:py-24 px-4 sm:px-8 md:px-16">
+  <div className="container">
+    <div className="mx-auto max-w-2xl">
+      <RegistrationForm />
+
+      <div className="mt-6 flex justify-center">
+        <a
+          href="https://admin.kururent.com/auth"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center rounded-lg bg-[#1a4a2e] px-6 py-3 text-white font-medium shadow-md hover:bg-[#143824] transition-colors"
+        >
+          Login
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
 
       {/* Footer */}
       <footer className="border-t bg-muted/30 py-12 px-4 sm:px-8 md:px-16">
