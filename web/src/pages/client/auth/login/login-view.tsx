@@ -19,7 +19,7 @@ const validationSchema = yup.object({
 
 type FormType = yup.InferType<typeof validationSchema>;
 
-const ADMIN_AUTH_URL = "https://property-management-system-admin.vercel.app/auth";
+const ADMIN_AUTH_URL = "https://admin.kururent.com/auth";
 
 const LoginView = () => {
   const { t } = useTranslation();
