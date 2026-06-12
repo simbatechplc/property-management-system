@@ -66,12 +66,13 @@ export default function HomePage() {
   ]
 
   const navItems = [
-    { id: "home", label: "Home" },
-    { id: "features", label: "Features" },
-    { id: "testimonials", label: "Testimonials" },
-    { id: "stats", label: "Stats" },
-    { id: "register", label: "Register" },
-  ]
+  { id: "home", label: "Home" },
+  { id: "features", label: "Features" },
+  { id: "testimonials", label: "Testimonials" },
+  { id: "stats", label: "Stats" },
+  { id: "register", label: "Register" },
+  { id: "login", label: "Login" },
+]
 
   return (
     <div className="min-h-screen">
@@ -95,7 +96,13 @@ export default function HomePage() {
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => scrollToSection(item.id)}
+                onClick={() => {
+                if (item.id === "login") {
+                window.location.href = "https://admin.kururent.com/auth";
+                } else {
+                scrollToSection(item.id);
+                 }
+                 }}
                 className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                   activeSection === item.id
                     ? "bg-white/20 text-[#c9a227]"
@@ -118,7 +125,13 @@ export default function HomePage() {
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => scrollToSection(item.id)}
+                onClick={() => {
+                    if (item.id === "login") {
+                       window.location.href = "https://admin.kururent.com/auth";
+                          } else {
+                            scrollToSection(item.id);
+                           }
+                      }}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
                   activeSection === item.id
                     ? "bg-white/20 text-[#c9a227]"
