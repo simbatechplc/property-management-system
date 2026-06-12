@@ -392,7 +392,7 @@ export default function HomePage() {
       <div className="mt-6 flex justify-center">
         <a
           href="https://admin.kururent.com/auth"
-          target="_blank"
+          target="_self"
           rel="noopener noreferrer"
           className="inline-flex items-center rounded-lg bg-[#1a4a2e] px-6 py-3 text-white font-medium shadow-md hover:bg-[#143824] transition-colors"
         >
