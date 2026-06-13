@@ -12,15 +12,32 @@ const ADMIN_FRONTEND_URL = process.env.ADMIN_FRONTEND_URL;
 const isTrustedOrigin = (origin: string | undefined): boolean => {
   if (!origin) return true;
   
+  // const staticOrigins = [
+  //   "http://localhost:4000",
+  //   "http://localhost:5173",
+  //   "https://solomongetnet.pro.et",
+  //   "https://www.solomongetnet.pro.et",
+  //   "myapp://",
+  //   ...(CLIENT_FRONTEND_URL ? [CLIENT_FRONTEND_URL] : []),
+  //   ...(ADMIN_FRONTEND_URL ? [ADMIN_FRONTEND_URL] : []),
+  // ];
+
   const staticOrigins = [
-    "http://localhost:4000",
-    "http://localhost:5173",
-    "https://solomongetnet.pro.et",
-    "https://www.solomongetnet.pro.et",
-    "myapp://",
-    ...(CLIENT_FRONTEND_URL ? [CLIENT_FRONTEND_URL] : []),
-    ...(ADMIN_FRONTEND_URL ? [ADMIN_FRONTEND_URL] : []),
-  ];
+  "http://localhost:4000",
+  "http://localhost:5173",
+
+  "https://solomongetnet.pro.et",
+  "https://www.solomongetnet.pro.et",
+
+  "https://kururent.com",
+  "https://www.kururent.com",
+  "https://admin.kururent.com",
+
+  "myapp://",
+
+  ...(CLIENT_FRONTEND_URL ? [CLIENT_FRONTEND_URL] : []),
+  ...(ADMIN_FRONTEND_URL ? [ADMIN_FRONTEND_URL] : []),
+];
   
   if (staticOrigins.includes(origin)) return true;
   
@@ -51,13 +68,25 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  // trustedOrigins: async (request) => {
+  //   const origin = request?.headers.get("origin") || "";
+  //   if (isTrustedOrigin(origin)) {
+  //     return [origin];
+  //   }
+  //   return [];
+  // },
   trustedOrigins: async (request) => {
-    const origin = request?.headers.get("origin") || "";
-    if (isTrustedOrigin(origin)) {
-      return [origin];
-    }
-    return [];
-  },
+  const origin = request?.headers.get("origin") || "";
+
+  console.log("Origin:", origin);
+  console.log("Trusted:", isTrustedOrigin(origin));
+
+  if (isTrustedOrigin(origin)) {
+    return [origin];
+  }
+
+  return [];
+},
 
   baseURL: BASE_URL,
   databaseHooks: {
