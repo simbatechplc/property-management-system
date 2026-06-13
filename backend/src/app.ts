@@ -27,6 +27,7 @@ const allowedOriginPatterns = [
   /^https:\/\/solomongetnet\.pro\.et$/,
   /^https:\/\/kururent\.com$/,
   /^https:\/\/www\.kururent\.com$/,
+  /^https:\/\/admin\.kururent\.com$/,
   /^http:\/\/localhost:(4000|5173|3000)$/,
 ];
 
