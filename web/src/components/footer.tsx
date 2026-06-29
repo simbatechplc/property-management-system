@@ -109,6 +109,21 @@ export function Footer() {
             ))}
           </div>
         </div>
+
+        {/* Powered by Section */}
+        <div className="border-t border-zinc-800/50 mt-4 pt-4 flex flex-col sm:flex-row items-center justify-center gap-2 text-xs">
+          <p className="text-zinc-600">
+            Powered by{" "}
+            <a 
+              href="https://simbatech.et/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-primary hover:text-primary/80 transition-colors font-medium"
+            >
+              Simbatech Trading PLC
+            </a>
+          </p>
+        </div>
       </div>
     </footer>
   );
