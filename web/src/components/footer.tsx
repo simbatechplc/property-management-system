@@ -103,26 +103,12 @@ export function Footer() {
 
         <div className="border-t border-zinc-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-600">
           <p>© {new Date().getFullYear()} <span className="text-zinc-400 font-medium">Kuru Rent</span>. All rights reserved.</p>
+           <p><span className="text-zinc-400 font-medium"><a href="https://simbatech.et" target="_blank">Powered By</a></span></p>
           <div className="flex items-center gap-5">
             {["Privacy Policy", "Terms of Service", "Cookie Policy"].map((label) => (
               <a key={label} href="#" className="hover:text-zinc-300 transition-colors">{label}</a>
             ))}
           </div>
-        </div>
-
-        {/* Powered by Section */}
-        <div className="border-t border-zinc-800/50 mt-4 pt-4 flex flex-col sm:flex-row items-center justify-center gap-2 text-xs">
-          <p className="text-zinc-600">
-            Powered by{" "}
-            <a 
-              href="https://simbatech.et/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-primary hover:text-primary/80 transition-colors font-medium"
-            >
-              Simbatech Trading PLC
-            </a>
-          </p>
         </div>
       </div>
     </footer>
