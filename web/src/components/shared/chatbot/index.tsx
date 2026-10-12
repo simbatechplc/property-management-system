@@ -37,9 +37,11 @@ export function ChatBotContainer() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: chatMessages, message: input, lang: selectedLanguage }),
       });
-      return res.json() as Promise<{ reply: string; success: boolean }>;
+      const data = await res.json();
+      return data;
     },
     onError: (error) => {
+      console.error("Chatbot error:", error);
       setMessages((prev) => [
         ...prev,
         {
@@ -51,9 +53,11 @@ export function ChatBotContainer() {
       ]);
     },
     onSuccess: (res) => {
+      // Handle different response formats safely
+      const reply = res?.reply || res?.message || res?.data?.reply || "Sorry, I couldn't understand that.";
       const botMessage: Message = {
         id: Date.now(),
-        text: res.reply,
+        text: reply,
         sender: "bot",
         timestamp: new Date(),
       };
