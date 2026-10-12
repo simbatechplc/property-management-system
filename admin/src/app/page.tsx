@@ -14,7 +14,7 @@ import {
   ChevronDown,
 } from "lucide-react"
 import { RegistrationForm } from "../components/registration-form"
-import { ChatBotContainer } from "@/components/chatbot"
+// import { ChatBotContainer } from "@/components/chatbot"
 import { ModeToggle } from "@/components/ui/mode-toggle"
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import Autoplay from "embla-carousel-autoplay"
@@ -436,7 +436,7 @@ export default function HomePage() {
         </div>
       </footer>
 
-      <ChatBotContainer />
+      {/* <ChatBotContainer /> */}
     </div>
   )
 }
