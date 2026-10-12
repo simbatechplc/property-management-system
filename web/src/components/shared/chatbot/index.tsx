@@ -24,6 +24,18 @@ interface Message {
 
 export function ChatBotContainer() {
   const [selectedLanguage, setSelectedLanguage] = useState<"am" | "en">("en");
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 1,
+      text: "Hello! I'm Kuru Rent AI Assistant. How can I help you today?",
+      sender: "bot",
+      timestamp: new Date(),
+    },
+  ]);
+  const [inputValue, setInputValue] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const sendToChatbot = useMutation({
     mutationFn: async (input: string) => {
       const chatMessages = messages.map((m) => ({
@@ -39,7 +51,7 @@ export function ChatBotContainer() {
       });
       return res.json() as Promise<{ reply: string; success: boolean }>;
     },
-    onError: (error) => {
+    onError: () => {
       setMessages((prev) => [
         ...prev,
         {
@@ -51,15 +63,14 @@ export function ChatBotContainer() {
       ]);
     },
     onSuccess: (res: any) => {
-      // Handle different response formats safely
       let replyText = "Sorry, I couldn't understand that.";
-      
+
       if (typeof res === "string") {
         replyText = res;
       } else if (res && typeof res === "object") {
         replyText = res.reply || res.message || res.data?.reply || replyText;
       }
-      
+
       const botMessage: Message = {
         id: Date.now(),
         text: replyText,
@@ -69,18 +80,6 @@ export function ChatBotContainer() {
       setMessages((prev) => [...prev, botMessage]);
     },
   });
-
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      text: "Hello! I'm Kuru Rent AI Assistant. How can I help you today?",
-      sender: "bot",
-      timestamp: new Date(),
-    },
-  ]);
-  const [inputValue, setInputValue] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () =>
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -109,7 +108,7 @@ export function ChatBotContainer() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    sendToChatbot.mutateAsync(inputValue);
+    sendToChatbot.mutate(inputValue);
     setInputValue("");
   };
 
