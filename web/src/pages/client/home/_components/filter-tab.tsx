@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { MapPin, Search, Building2, Home, Clock, Plane, PlaneTakeoff, ArrowLeftRight, CalendarDays, Clock3, Users, Filter } from "lucide-react";
+import { MapPin, Search, Building2, Home, Clock, PlaneTakeoff, ArrowLeftRight, CalendarDays, Clock3, Users, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LocationFilter } from "./location-filter";
 import { useNavigate } from "react-router-dom";
@@ -38,7 +38,7 @@ const FilterTab = () => {
     { id: "longstay", label: t("filterTabs.guestHouse"), icon: <Clock className="w-4 h-4" /> },
     { id: "hotels", label: t("filterTabs.hotels"), icon: <Building2 className="w-4 h-4" /> },
     { id: "homes", label: t("filterTabs.homesApts"), icon: <Home className="w-4 h-4" /> },
-    { id: "transport", label: t("filterTabs.airportTransfer"), icon: <Plane className="w-4 h-4" /> },
+    // { id: "transport", label: t("filterTabs.airportTransfer"), icon: <Plane className="w-4 h-4" /> },
   ];
 
   useEffect(() => {
