@@ -50,7 +50,7 @@ export function ChatBotContainer() {
         },
       ]);
     },
-    onSuccess: (res) => {
+    onSuccess: (res: any) => {
       // Handle different response formats safely
       let replyText = "Sorry, I couldn't understand that.";
       
