@@ -51,9 +51,18 @@ export function ChatBotContainer() {
       ]);
     },
     onSuccess: (res) => {
+      // Handle different response formats safely
+      let replyText = "Sorry, I couldn't understand that.";
+      
+      if (typeof res === "string") {
+        replyText = res;
+      } else if (res && typeof res === "object") {
+        replyText = res.reply || res.message || res.data?.reply || replyText;
+      }
+      
       const botMessage: Message = {
         id: Date.now(),
-        text: res.reply,
+        text: replyText,
         sender: "bot",
         timestamp: new Date(),
       };
