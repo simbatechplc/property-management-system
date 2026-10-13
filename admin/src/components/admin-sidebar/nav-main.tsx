@@ -83,7 +83,6 @@ const roleSidebarLinks: Record<
       icon: DollarSign,
       items: [
         { title: "Payments", url: "/admin/payments", icon: CreditCard },
-        { title: "Commissions", url: "/admin/income", icon: Banknote },
       ],
     },
   ],
@@ -104,7 +103,6 @@ const roleSidebarLinks: Record<
       icon: DollarSign,
       items: [
         { title: "Payments", url: "/admin/payments", icon: CreditCard },
-        { title: "Commissions", url: "/admin/income", icon: Banknote },
       ],
     },
   ],
